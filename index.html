@@ -1,0 +1,171 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07111f">
+  <title>CIAMA TRADING</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <a href="#" class="logo">CIAMA <span>TRADING</span></a>
+    <button id="headerLogin" class="btn btn-outline" type="button">
+      Se connecter
+    </button>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-content">
+        <span class="eyebrow">BIENVENUE SUR CIAMA TRADING</span>
+        <h1>Votre espace de <span>trading</span></h1>
+        <p>
+          Créez votre compte pour accéder à votre espace personnel
+          et découvrir les fonctionnalités de la plateforme.
+        </p>
+        <button id="heroRegister" class="btn btn-primary" type="button">
+          Créer un compte
+        </button>
+      </div>
+
+      <div class="market-card">
+        <div class="market-top">
+          <span>APERÇU DU MARCHÉ</span>
+          <span class="market-dot"></span>
+        </div>
+        <div class="chart-value">TRADING</div>
+        <p class="muted">Espace personnel CIAMA</p>
+        <svg viewBox="0 0 320 100" class="chart" role="img"
+             aria-label="Illustration graphique décorative">
+          <defs>
+            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="#21d6a0" stop-opacity=".3"/>
+              <stop offset="100%" stop-color="#21d6a0" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <path d="M0 78 L35 65 L65 72 L95 42 L125 53 L160 25
+                   L190 44 L225 18 L255 32 L285 10 L320 17
+                   L320 100 L0 100 Z" fill="url(#chartFill)"/>
+          <polyline points="0,78 35,65 65,72 95,42 125,53
+                            160,25 190,44 225,18 255,32 285,10 320,17"
+                    fill="none" stroke="#21d6a0" stroke-width="3"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <p class="market-note">
+          Les marchés financiers comportent des risques.
+        </p>
+      </div>
+    </section>
+
+    <section class="features">
+      <article class="feature">
+        <span class="feature-icon">01</span>
+        <h3>Espace personnel</h3>
+        <p>Retrouvez les informations de votre compte après connexion.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon">02</span>
+        <h3>Navigation simple</h3>
+        <p>Une interface conçue pour une utilisation sur téléphone.</p>
+      </article>
+      <article class="feature">
+        <span class="feature-icon">03</span>
+        <h3>Accès sécurisé</h3>
+        <p>La connexion réelle nécessitera une authentification côté serveur.</p>
+      </article>
+    </section>
+
+    <section id="authSection" class="auth-section">
+      <div class="auth-card">
+        <div class="auth-heading">
+          <div class="logo auth-logo">CIAMA <span>TRADING</span></div>
+          <h2 id="formTitle">Créer un compte</h2>
+          <p id="formDescription">
+            Inscrivez-vous pour accéder à votre espace CIAMA-TRADE.
+          </p>
+        </div>
+
+        <div class="tabs">
+          <button id="registerTab" class="tab active" type="button">
+            Inscription
+          </button>
+          <button id="loginTab" class="tab" type="button">
+            Connexion
+          </button>
+        </div>
+
+        <form id="registerForm">
+          <label for="registerEmail">Adresse e-mail</label>
+          <input id="registerEmail" name="email" type="email"
+                 placeholder="vous@exemple.com" autocomplete="email"
+                 required>
+
+          <label for="registerPassword">Mot de passe</label>
+          <input id="registerPassword" name="password" type="password"
+                 placeholder="Créer un mot de passe"
+                 autocomplete="new-password" minlength="8" required>
+
+          <label for="confirmPassword">Confirmer le mot de passe</label>
+          <input id="confirmPassword" name="confirmPassword"
+                 type="password" placeholder="Confirmer le mot de passe"
+                 autocomplete="new-password" minlength="8" required>
+
+          <label for="inviteCode">
+            Code d'invitation <span class="optional">(facultatif)</span>
+          </label>
+          <input id="inviteCode" name="inviteCode" type="text"
+                 placeholder="Entrez votre code d'invitation">
+
+          <button class="btn btn-primary btn-full" type="submit">
+            S'inscrire
+          </button>
+
+          <p class="switch-text">
+            Déjà inscrit ?
+            <button class="text-button" id="goLogin" type="button">
+              Se connecter
+            </button>
+          </p>
+        </form>
+
+        <form id="loginForm" hidden>
+          <label for="loginEmail">Adresse e-mail</label>
+          <input id="loginEmail" name="email" type="email"
+                 placeholder="vous@exemple.com" autocomplete="email"
+                 required>
+
+          <label for="loginPassword">Mot de passe</label>
+          <input id="loginPassword" name="password" type="password"
+                 placeholder="Votre mot de passe"
+                 autocomplete="current-password" required>
+
+          <button class="btn btn-primary btn-full" type="submit">
+            Se connecter
+          </button>
+
+          <p class="switch-text">
+            Pas encore de compte ?
+            <button class="text-button" id="goRegister" type="button">
+              S'inscrire
+            </button>
+          </p>
+        </form>
+
+        <p id="formMessage" class="form-message" role="status"
+           aria-live="polite"></p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="#" class="logo">CIAMA <span>TRADING</span></a>
+    <p>Le trading comporte un risque de perte en capital.</p>
+    <p>&copy; 2026 CIAMA TRADING. Tous droits réservés.</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

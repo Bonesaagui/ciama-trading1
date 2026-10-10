@@ -1,0 +1,515 @@
+
+/* ========================================
+   CIAMA TRADING — STYLE PRINCIPAL
+   ======================================== */
+
+:root {
+  --bg: #07111f;
+  --bg-light: #0b192a;
+  --card: #101f32;
+  --card-light: #15283d;
+  --primary: #18d6a0;
+  --primary-dark: #0eaa7d;
+  --text: #f3f7fc;
+  --muted: #9aabc0;
+  --border: rgba(255, 255, 255, 0.09);
+  --danger: #ff7272;
+  --radius: 18px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(
+      circle at 15% 5%,
+      rgba(24, 214, 160, 0.08),
+      transparent 30%
+    ),
+    var(--bg);
+  color: var(--text);
+  font-family: Arial, Helvetica, sans-serif;
+  line-height: 1.6;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* BARRE DE NAVIGATION */
+
+.topbar {
+  width: 100%;
+  min-height: 76px;
+  padding: 16px 7%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(7, 17, 31, 0.94);
+}
+
+.logo {
+  font-size: 21px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  white-space: nowrap;
+}
+
+.logo span {
+  color: var(--primary);
+}
+
+/* BOUTONS */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46px;
+  padding: 11px 22px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 0.2s, background 0.2s;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  color: #04150f;
+  background: var(--primary);
+  box-shadow: 0 6px 22px rgba(24, 214, 160, 0.13);
+}
+
+.btn-primary:hover {
+  background: #43e8b9;
+}
+
+.btn-outline {
+  color: var(--text);
+  background: transparent;
+  border-color: rgba(24, 214, 160, 0.55);
+}
+
+.btn-outline:hover {
+  background: rgba(24, 214, 160, 0.08);
+}
+
+.btn-full {
+  width: 100%;
+  margin-top: 23px;
+}
+
+/* SECTION D'ACCUEIL */
+
+.hero {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 80px 7% 70px;
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  align-items: center;
+  gap: 55px;
+}
+
+.hero-content {
+  max-width: 590px;
+}
+
+.eyebrow {
+  display: inline-block;
+  margin-bottom: 19px;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 2px;
+}
+
+.hero h1 {
+  margin-bottom: 20px;
+  font-size: clamp(36px, 5vw, 58px);
+  line-height: 1.12;
+  letter-spacing: -1.5px;
+}
+
+.hero h1 span {
+  color: var(--primary);
+}
+
+.hero-content > p {
+  max-width: 490px;
+  margin-bottom: 28px;
+  color: var(--muted);
+  font-size: 16px;
+}
+
+.market-card {
+  min-width: 0;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(
+    145deg,
+    var(--card-light),
+    var(--card)
+  );
+  box-shadow: 0 25px 65px rgba(0, 0, 0, 0.2);
+}
+
+.market-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.market-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 12px rgba(24, 214, 160, 0.7);
+}
+
+.chart-value {
+  margin-top: 25px;
+  font-size: 27px;
+  font-weight: 800;
+}
+
+.muted {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  margin-top: 22px;
+  overflow: visible;
+}
+
+.market-note {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* CARTES DE FONCTIONNALITÉS */
+
+.features {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 10px 7% 75px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.feature {
+  padding: 25px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: rgba(16, 31, 50, 0.75);
+}
+
+.feature-icon {
+  display: inline-flex;
+  width: 43px;
+  height: 43px;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 17px;
+  border-radius: 12px;
+  background: rgba(24, 214, 160, 0.1);
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.feature h3 {
+  margin-bottom: 9px;
+  font-size: 17px;
+}
+
+.feature p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+/* FORMULAIRES */
+
+.auth-section {
+  padding: 45px 18px 90px;
+  scroll-margin-top: 25px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+  padding: 32px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: linear-gradient(
+    145deg,
+    rgba(21, 40, 61, 0.98),
+    rgba(12, 27, 44, 0.98)
+  );
+  box-shadow: 0 25px 75px rgba(0, 0, 0, 0.25);
+}
+
+.auth-heading {
+  margin-bottom: 25px;
+  text-align: center;
+}
+
+.auth-logo {
+  margin-bottom: 22px;
+  font-size: 19px;
+}
+
+.auth-heading h2 {
+  margin-bottom: 8px;
+  font-size: 25px;
+}
+
+.auth-heading p {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px;
+  margin-bottom: 25px;
+  padding: 5px;
+  border-radius: 11px;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.tab {
+  min-height: 42px;
+  border: none;
+  border-radius: 8px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tab.active {
+  color: var(--primary);
+  background: rgba(24, 214, 160, 0.11);
+}
+
+form label {
+  display: block;
+  margin: 17px 0 7px;
+  color: #e3ebf5;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.optional {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 400;
+}
+
+form input {
+  display: block;
+  width: 100%;
+  min-height: 48px;
+  padding: 12px 14px;
+  outline: none;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9px;
+  color: var(--text);
+  background: rgba(4, 13, 24, 0.6);
+  font-size: 14px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+form input::placeholder {
+  color: #73849a;
+}
+
+form input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(24, 214, 160, 0.08);
+}
+
+form input:invalid:not(:placeholder-shown) {
+  border-color: rgba(255, 114, 114, 0.65);
+}
+
+.switch-text {
+  margin-top: 23px;
+  color: var(--muted);
+  text-align: center;
+  font-size: 13px;
+}
+
+.text-button {
+  padding: 0;
+  border: none;
+  color: var(--primary);
+  background: transparent;
+  font-size: inherit;
+  font-weight: 700;
+}
+
+.text-button:hover {
+  text-decoration: underline;
+}
+
+.form-message {
+  margin-top: 17px;
+  font-size: 13px;
+  text-align: center;
+  overflow-wrap: anywhere;
+}
+
+.form-message:empty {
+  display: none;
+}
+
+.form-message.error {
+  color: var(--danger);
+}
+
+.form-message.success {
+  color: var(--primary);
+}
+
+/* PIED DE PAGE */
+
+footer {
+  padding: 30px 18px;
+  border-top: 1px solid var(--border);
+  text-align: center;
+}
+
+footer .logo {
+  display: inline-block;
+  margin-bottom: 12px;
+}
+
+footer p {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* ACCESSIBILITÉ */
+
+button:focus-visible,
+a:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+/* ADAPTATION AUX TÉLÉPHONES */
+
+@media (max-width: 760px) {
+  .topbar {
+    min-height: 68px;
+    padding: 13px 5%;
+  }
+
+  .logo {
+    font-size: 18px;
+  }
+
+  .topbar .btn {
+    min-height: 40px;
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+
+  .hero {
+    grid-template-columns: 1fr;
+    gap: 32px;
+    padding: 55px 6% 50px;
+  }
+
+  .hero h1 {
+    font-size: 39px;
+  }
+
+  .hero-content > p {
+    font-size: 14px;
+  }
+
+  .market-card {
+    padding: 22px;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+    gap: 13px;
+    padding: 0 6% 55px;
+  }
+
+  .feature {
+    padding: 21px;
+  }
+
+  .auth-section {
+    padding: 25px 14px 60px;
+  }
+
+  .auth-card {
+    padding: 25px 20px;
+    border-radius: 17px;
+  }
+
+  .auth-heading h2 {
+    font-size: 23px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,163 @@
+
+/* ==========================================
+   CIAMA TRADING — SCRIPT PRINCIPAL
+   ========================================== */
+
+"use strict";
+
+const registerForm = document.getElementById("registerForm");
+const loginForm = document.getElementById("loginForm");
+
+const registerTab = document.getElementById("registerTab");
+const loginTab = document.getElementById("loginTab");
+
+const formTitle = document.getElementById("formTitle");
+const formDescription = document.getElementById("formDescription");
+const formMessage = document.getElementById("formMessage");
+
+const authSection = document.getElementById("authSection");
+
+function showMessage(message, type = "") {
+  formMessage.textContent = message;
+  formMessage.className = "form-message";
+
+  if (type) {
+    formMessage.classList.add(type);
+  }
+}
+
+function showRegister() {
+  registerForm.hidden = false;
+  loginForm.hidden = true;
+
+  registerTab.classList.add("active");
+  loginTab.classList.remove("active");
+
+  formTitle.textContent = "Créer un compte";
+  formDescription.textContent =
+    "Inscrivez-vous pour accéder à votre espace CIAMA-TRADE.";
+
+  showMessage("");
+}
+
+function showLogin() {
+  registerForm.hidden = true;
+  loginForm.hidden = false;
+
+  registerTab.classList.remove("active");
+  loginTab.classList.add("active");
+
+  formTitle.textContent = "Se connecter";
+  formDescription.textContent =
+    "Connectez-vous à votre espace CIAMA-TRADE.";
+
+  showMessage("");
+}
+
+function scrollToAuth() {
+  authSection.scrollIntoView({
+    behavior: "smooth",
+    block: "start"
+  });
+}
+
+registerTab.addEventListener("click", showRegister);
+loginTab.addEventListener("click", showLogin);
+
+document.getElementById("goLogin").addEventListener("click", () => {
+  showLogin();
+});
+
+document.getElementById("goRegister").addEventListener("click", () => {
+  showRegister();
+});
+
+document.getElementById("headerLogin").addEventListener("click", () => {
+  showLogin();
+  scrollToAuth();
+});
+
+document.getElementById("heroRegister").addEventListener("click", () => {
+  showRegister();
+  scrollToAuth();
+});
+
+/*
+ * IMPORTANT :
+ * Cette version vérifie les formulaires dans le navigateur.
+ * Elle ne crée pas encore de vrais comptes.
+ * Aucun mot de passe n'est enregistré dans le navigateur.
+ */
+
+registerForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const email = document.getElementById("registerEmail")
+    .value.trim();
+
+  const password = document.getElementById("registerPassword")
+    .value;
+
+  const confirmPassword = document.getElementById("confirmPassword")
+    .value;
+
+  const inviteCode = document.getElementById("inviteCode")
+    .value.trim();
+
+  if (!email) {
+    showMessage("Entre une adresse e-mail valide.", "error");
+    return;
+  }
+
+  if (password.length < 8) {
+    showMessage(
+      "Le mot de passe doit contenir au moins 8 caractères.",
+      "error"
+    );
+    return;
+  }
+
+  if (password !== confirmPassword) {
+    showMessage(
+      "Les deux mots de passe ne correspondent pas.",
+      "error"
+    );
+    return;
+  }
+
+  showMessage(
+    "Formulaire vérifié. L'inscription sera activée après la connexion à la base de données.",
+    "success"
+  );
+
+  console.info("Formulaire d'inscription validé.", {
+    email: email,
+    invitationRenseignee: inviteCode.length > 0
+  });
+});
+
+loginForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  const email = document.getElementById("loginEmail")
+    .value.trim();
+
+  const password = document.getElementById("loginPassword")
+    .value;
+
+  if (!email || !password) {
+    showMessage(
+      "Remplis ton adresse e-mail et ton mot de passe.",
+      "error"
+    );
+    return;
+  }
+
+  showMessage(
+    "La connexion sera activée après la configuration de l'authentification.",
+    "error"
+  );
+});
+
+/* Affichage initial */
+showRegister();
