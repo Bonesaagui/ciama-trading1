@@ -1,221 +1,222 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#07111f">
-  <title>CIAMA TRADING</title>
+  <title>CIAMA TRADING - Plateforme</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
+
+  <!-- Client Supabase officiel pour la synchronisation dynamique -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <header class="topbar">
-    <a href="#" class="logo">CIAMA <span>TRADING</span></a>
-    <button id="headerLogin" class="btn btn-outline" type="button">
-      Se connecter
-    </button>
-  </header>
-
-  <main>
-    <section class="hero">
-      <div class="hero-content">
-        <span class="eyebrow">BIENVENUE SUR CIAMA TRADING</span>
-        <h1>Votre espace de <span>trading</span></h1>
-        <p>
-          Créez votre compte pour accéder à votre espace personnel
-          et découvrir les fonctionnalités de la plateforme.
-        </p>
-        <button id="heroRegister" class="btn btn-primary" type="button">
-          Créer un compte
-        </button>
+  <!-- ÉCRAN D'AUTHENTIFICATION (INSCRIPTION / CONNEXION) -->
+  <div id="authSection" class="auth-container">
+    <div class="auth-card">
+      <div class="auth-header">
+        <h1 class="logo-text">CIAMA TRADING</h1>
+        <p>Plateforme de Signal & Copy Trading</p>
       </div>
 
-      <div class="market-card">
-        <div class="market-top">
-          <span>APERÇU DU MARCHÉ</span>
-          <span class="market-dot"></span>
-        </div>
-        <div class="chart-value">TRADING</div>
-        <p class="muted">Espace personnel CIAMA</p>
-
-        <svg viewBox="0 0 320 100" class="chart" role="img"
-             aria-label="Illustration graphique décorative">
-          <defs>
-            <linearGradient id="chartFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="#21d6a0" stop-opacity=".3"/>
-              <stop offset="100%" stop-color="#21d6a0" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-
-          <path d="M0 78 L35 65 L65 72 L95 42 L125 53 L160 25
-                   L190 44 L225 18 L255 32 L285 10 L320 17
-                   L320 100 L0 100 Z" fill="url(#chartFill)"/>
-
-          <polyline points="0,78 35,65 65,72 95,42 125,53
-                            160,25 190,44 225,18 255,32 285,10 320,17"
-                    fill="none" stroke="#21d6a0" stroke-width="3"
-                    stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-
-        <p class="market-note">
-          Les marchés financiers comportent des risques.
-        </p>
+      <div class="auth-tabs">
+        <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="active-tab">S'inscrire</button>
+        <button id="tabLoginBtn" onclick="switchAuthTab('login')">Se connecter</button>
       </div>
-    </section>
 
-    <section class="features">
-      <article class="feature">
-        <span class="feature-icon">01</span>
-        <h3>Espace personnel</h3>
-        <p>Retrouvez les informations de votre compte après connexion.</p>
-      </article>
+      <!-- Formulaire Inscription -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="auth-form">
+        <div class="input-group">
+          <label>Adresse mail</label>
+          <input type="email" id="regEmail" required placeholder="votre@email.com">
+        </div>
+        <div class="input-group">
+          <label>Mot de passe</label>
+          <input type="password" id="regPassword" required placeholder="••••••••">
+        </div>
+        <div class="input-group">
+          <label>Confirmer mot de passe</label>
+          <input type="password" id="regConfirmPassword" required placeholder="••••••••">
+        </div>
+        <div class="input-group">
+          <label>Code d'invitation (Optionnel)</label>
+          <input type="text" id="regInviteCode" placeholder="Ex: CIAMA55">
+        </div>
+        <button type="submit" class="btn-primary">S'inscrire</button>
+      </form>
 
-      <article class="feature">
-        <span class="feature-icon">02</span>
-        <h3>Navigation simple</h3>
-        <p>Une interface conçue pour une utilisation sur téléphone.</p>
-      </article>
+      <!-- Formulaire Connexion -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="auth-form hidden">
+        <div class="input-group">
+          <label>Adresse mail</label>
+          <input type="email" id="loginEmail" required placeholder="votre@email.com">
+        </div>
+        <div class="input-group">
+          <label>Mot de passe</label>
+          <input type="password" id="loginPassword" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn-primary">Se connecter</button>
+      </form>
+    </div>
+  </div>
 
-      <article class="feature">
-        <span class="feature-icon">03</span>
-        <h3>Accès sécurisé</h3>
-        <p>
-          La connexion utilise Supabase pour gérer l'authentification
-          des utilisateurs.
-        </p>
-      </article>
-    </section>
+  <!-- TABLEAU DE BORD (MASQUÉ PAR DÉFAUT) -->
+  <div id="appDashboard" class="dashboard-container hidden">
+    
+    <!-- Navbar -->
+    <header class="navbar">
+      <div class="nav-brand">
+        <span class="logo-text">CIAMA TRADING</span>
+      </div>
+      <div class="nav-user">
+        <span id="userEmailDisplay"></span>
+        <button onclick="logout()" class="btn-logout" title="Déconnexion"><i class="fa-solid fa-right-from-bracket"></i></button>
+      </div>
+    </header>
 
-    <section id="authSection" class="auth-section">
-      <div class="auth-card">
-        <div class="auth-heading">
-          <div class="logo auth-logo">CIAMA <span>TRADING</span></div>
+    <main class="main-content">
 
-          <h2 id="formTitle">Créer un compte</h2>
+      <!-- Soldes -->
+      <div class="grid-3">
+        <div class="card">
+          <span class="card-title">Solde Principal Investi</span>
+          <div id="investedBalance" class="card-value">$0.00</div>
+          <span class="card-desc">Capital servant aux calculs de signaux</span>
+        </div>
+        <div class="card">
+          <span class="card-title">Gains Journaliers</span>
+          <div id="dailyGainsBalance" class="card-value text-green">+$0.00</div>
+          <span class="card-desc">Intérêts générés via les trades</span>
+        </div>
+        <div class="card flex-col">
+          <div class="flex-between">
+            <span class="card-title">Code de Parrainage</span>
+            <span class="badge-green">5% Commission</span>
+          </div>
+          <div class="copy-box">
+            <input id="inviteCodeDisplay" readonly type="text">
+            <button onclick="copyInviteCode()" class="btn-sm">Copier</button>
+          </div>
+        </div>
+      </div>
 
-          <p id="formDescription">
-            Inscrivez-vous pour accéder à votre espace CIAMA TRADING.
-          </p>
+      <!-- Dépôt & Retrait -->
+      <div class="grid-2">
+        <!-- Dépôt -->
+        <div class="card">
+          <h2><i class="fa-solid fa-wallet text-gold"></i> Dépôt (BEP20)</h2>
+          <div class="alert-box">
+            🎁 <b>Bonus de Dépôt :</b> Obtenez $1.00 de bonus offert à chaque demande !
+          </div>
+          <div class="input-group">
+            <label>Adresse de dépôt officielle (USDT - BEP20)</label>
+            <div class="copy-box">
+              <input type="text" readonly value="0xdf68475aD0F9F0d1aaC6d0196b31783127222203" id="depositAddr">
+              <button onclick="copyDepositAddress()" class="btn-sm">Copier</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Montant du dépôt ($)</label>
+            <input type="number" id="depositAmount" min="10" placeholder="Ex: 100">
+          </div>
+          <button onclick="submitDeposit()" class="btn-success">Valider le dépôt</button>
+          <span class="text-tiny">Crédité sous 10 minutes</span>
         </div>
 
-        <div class="tabs">
-          <button id="registerTab" class="tab active" type="button">
-            Inscription
-          </button>
+        <!-- Retrait -->
+        <div class="card">
+          <h2><i class="fa-solid fa-arrow-up-right-from-square text-gold"></i> Demande de Retrait</h2>
+          <div class="input-group">
+            <label>Adresse Crypto USDT (Verrouillée après saisie)</label>
+            <input type="text" id="withdrawAddress" placeholder="Saisir votre adresse USDT">
+          </div>
+          <div class="input-group">
+            <label>Montant du retrait ($)</label>
+            <input type="number" id="withdrawAmount" placeholder="Ex: 50">
+          </div>
+          <button onclick="submitWithdrawal()" class="btn-danger">Confirmer le retrait</button>
+          <span class="text-tiny">Traitement automatique sous 24h</span>
+        </div>
+      </div>
 
-          <button id="loginTab" class="tab" type="button">
-            Connexion
-          </button>
+      <!-- Planning & Espace Trading -->
+      <div class="grid-layout">
+        <!-- Planning -->
+        <div class="card">
+          <h2><i class="fa-solid fa-calendar-days text-gold"></i> Planning Hebdomadaire</h2>
+          <ul class="schedule-list">
+            <li id="day-1"><span>Lundi</span> <b class="text-gold">BTC/USDT</b></li>
+            <li id="day-2"><span>Mardi</span> <b class="text-gold">ETH/USDT</b></li>
+            <li id="day-3"><span>Mercredi</span> <b class="text-gold">BNB/USDT</b></li>
+            <li id="day-4"><span>Jeudi</span> <b class="text-gold">SOL/USDT</b></li>
+            <li id="day-5"><span>Vendredi</span> <b class="text-gold">XRP/USDT</b></li>
+          </ul>
         </div>
 
-        <form id="registerForm">
-          <label for="registerEmail">Adresse e-mail</label>
-          <input
-            id="registerEmail"
-            name="email"
-            type="email"
-            placeholder="vous@exemple.com"
-            autocomplete="email"
-            required
-          >
-
-          <label for="registerPassword">Mot de passe</label>
-          <input
-            id="registerPassword"
-            name="password"
-            type="password"
-            placeholder="Créer un mot de passe"
-            autocomplete="new-password"
-            minlength="8"
-            required
-          >
-
-          <label for="confirmPassword">Confirmer le mot de passe</label>
-          <input
-            id="confirmPassword"
-            name="confirmPassword"
-            type="password"
-            placeholder="Confirmer le mot de passe"
-            autocomplete="new-password"
-            minlength="8"
-            required
-          >
-
-          <label for="inviteCode">
-            Code d'invitation <span class="optional">(facultatif)</span>
-          </label>
-          <input
-            id="inviteCode"
-            name="inviteCode"
-            type="text"
-            placeholder="Entrez votre code d'invitation"
-          >
-
-          <button class="btn btn-primary btn-full" type="submit">
-            S'inscrire
-          </button>
-
-          <p class="switch-text">
-            Déjà inscrit ?
-            <button class="text-button" id="goLogin" type="button">
-              Se connecter
+        <!-- Espace Signal -->
+        <div class="card flex-space">
+          <div>
+            <div class="flex-between border-b pb-2">
+              <h2><i class="fa-solid fa-bolt text-gold"></i> Espace de Trading du Signal</h2>
+              <span class="badge-time">Horaire : <b>18h - 20h</b></span>
+            </div>
+            <div class="signal-grid">
+              <div class="signal-box">
+                <span class="text-tiny">Actif du Jour</span>
+                <div id="todayAsset" class="signal-val">-</div>
+              </div>
+              <div class="signal-box">
+                <span class="text-tiny">Position</span>
+                <div class="signal-val text-green">ACHAT (BUY)</div>
+              </div>
+              <div class="signal-box">
+                <span class="text-tiny">Taux de Gain</span>
+                <div class="signal-val text-green">+1.5% / +2%</div>
+              </div>
+              <div class="signal-box">
+                <span class="text-tiny">Statut</span>
+                <div id="signalStatus" class="signal-val text-gold">1 Trade / Jour</div>
+              </div>
+            </div>
+          </div>
+          <div class="trade-action-box">
+            <div class="flex-between text-small">
+              <span>Capital engagé :</span>
+              <span id="tradeCapitalText" class="font-bold">$0.00</span>
+            </div>
+            <button id="executeTradeBtn" onclick="executeDailySignal()" class="btn-trade">
+              CONFIRMER L'OUVERTURE DE LA POSITION
             </button>
-          </p>
-        </form>
-
-        <form id="loginForm" hidden>
-          <label for="loginEmail">Adresse e-mail</label>
-          <input
-            id="loginEmail"
-            name="email"
-            type="email"
-            placeholder="vous@exemple.com"
-            autocomplete="email"
-            required
-          >
-
-          <label for="loginPassword">Mot de passe</label>
-          <input
-            id="loginPassword"
-            name="password"
-            type="password"
-            placeholder="Votre mot de passe"
-            autocomplete="current-password"
-            required
-          >
-
-          <button class="btn btn-primary btn-full" type="submit">
-            Se connecter
-          </button>
-
-          <p class="switch-text">
-            Pas encore de compte ?
-            <button class="text-button" id="goRegister" type="button">
-              S'inscrire
-            </button>
-          </p>
-        </form>
-
-        <p
-          id="formMessage"
-          class="form-message"
-          role="status"
-          aria-live="polite"
-        ></p>
+          </div>
+        </div>
       </div>
-    </section>
-  </main>
 
-  <footer>
-    <a href="#" class="logo">CIAMA <span>TRADING</span></a>
-    <p>Le trading comporte un risque de perte en capital.</p>
-    <p>&copy; 2026 CIAMA TRADING. Tous droits réservés.</p>
-  </footer>
+      <!-- Historique -->
+      <div class="card">
+        <h2>Historique des Transactions & Dépôts</h2>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Détails</th>
+                <th>Statut</th>
+                <th>Date</th>
+              </tr>
+            </thead>
+            <tbody id="historyTable">
+              <!-- Dynamique -->
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-  <!-- Charger Supabase AVANT le script principal -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    </main>
+  </div>
+
   <script src="script.js"></script>
-
 </body>
 </html>
+
