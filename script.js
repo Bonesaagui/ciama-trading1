@@ -25,12 +25,17 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE ---
+// --- INSCRIPTION SÉCURISÉE AVEC AUTHENTIFICATION ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const pass = document.getElementById('regPassword').value;
   const confirmPass = document.getElementById('regConfirmPassword').value;
+
+  if (!email || !pass) {
+    alert("Veuillez remplir tous les champs !");
+    return;
+  }
 
   if (pass !== confirmPass) {
     alert("Les mots de passe ne correspondent pas !");
@@ -73,48 +78,49 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// --- CONNEXION AVEC COMPATIBILITÉ ANCIENS COMPTES ---
+// --- CONNEXION AVEC VÉRIFICATION STRICTE DE L'AUTHENTIFICATION ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPassword').value;
 
-  const savedData = localStorage.getItem('ciama_user_' + email);
+  if (!email || !pass) {
+    alert("Veuillez renseigner votre email et mot de passe !");
+    return;
+  }
+
+  // 1. Vérification dans le stockage local
+  let savedData = localStorage.getItem('ciama_user_' + email);
 
   if (savedData) {
     const data = JSON.parse(savedData);
     
-    // Si un mot de passe existe, on le vérifie. Sinon, on l'autorise (ancien compte)
+    // Vérification stricte du mot de passe
     if (data.password && data.password !== pass) {
       alert("Mot de passe incorrect ! Veuillez réessayer.");
       return;
     }
 
-    // Si c'est un ancien compte sans mot de passe enregistré, on lui associe le mot de passe actuel
-    if (!data.password) {
-      data.password = pass;
-    }
-
     currentUser = data;
     loadUserDataFromMemory(data);
-    saveUserData();
     initDashboard();
     return;
   }
 
-  // Vérification dans Supabase si non trouvé localement
+  // 2. Vérification dans Supabase (Cloud) si non trouvé localement
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
         .from('users')
         .select('*')
         .eq('email', email)
+        .eq('password', pass)
         .single();
 
       if (data) {
         currentUser = {
           email: data.email,
-          password: data.password || pass,
+          password: data.password,
           investedBalance: data.balance || 0,
           dailyGains: data.daily_gains || 0,
           lockedWithdrawAddress: data.withdraw_address || "",
@@ -130,11 +136,12 @@ async function handleLogin(e) {
         return;
       }
     } catch (err) {
-      console.log("Erreur de connexion cloud", err);
+      console.log("Erreur de vérification cloud", err);
     }
   }
 
-  alert("Aucun compte trouvé avec cet email ! Veuillez vous inscrire d'abord.");
+  // Si le compte n'existe ni localement ni sur Supabase avec ce mot de passe
+  alert("Aucun compte trouvé avec cet email ou mot de passe incorrect ! Veuillez vous inscrire.");
 }
 
 function loadUserDataFromMemory(data) {
@@ -298,10 +305,10 @@ function submitDeposit() {
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
-  // Crédit automatique après 1 minute (60 000 ms)
   setTimeout(() => {
-    investedBalance += amount + 1.00; // +$1 bonus
+    investedBalance += amount + 1.00;
     updateBalances();
+    setupScheduleHighlight(); 
     record.status = "Approuvé";
     record.statusClass = "text-green";
     renderHistory();
@@ -347,20 +354,58 @@ function submitWithdrawal() {
   }, 40000); 
 }
 
+// --- CONTRÔLE HORAIRE DU SIGNAL (18H00 À 20H00 STRICT) ---
 function setupScheduleHighlight() {
   const now = new Date();
   const currentDay = now.getDay();
+  const currentHour = now.getHours();
+
   const activeAsset = assetsSchedule[currentDay] || "BTC/USDT (Week-end)";
   document.getElementById('todayAsset').innerText = activeAsset;
 
+  let rateText = "1.5%";
+  if (investedBalance >= 50 && investedBalance <= 200) {
+    rateText = "2%";
+  } else if (investedBalance >= 300) {
+    rateText = "3%";
+  }
+  const vipRateDisplay = document.getElementById('currentVipRate');
+  if (vipRateDisplay) {
+    vipRateDisplay.innerText = rateText;
+  }
+
+  const isSignalTime = (currentHour >= 18 && currentHour < 20);
+  const btn = document.getElementById('executeTradeBtn');
+
   if (hasTradedToday) {
-    lockTradeButton();
+    btn.disabled = true;
+    btn.style.background = "#334155";
+    btn.style.color = "#94a3b8";
+    btn.innerText = "SIGNAL DÉJÀ EXÉCUTÉ AUJOURD'HUI";
+  } else if (!isSignalTime) {
+    btn.disabled = true;
+    btn.style.background = "#1e293b";
+    btn.style.color = "#64748b";
+    btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
+  } else {
+    btn.disabled = false;
+    btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
+    btn.style.color = "#070913";
+    btn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
   }
 }
 
 function executeDailySignal() {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  if (currentHour < 18 || currentHour >= 20) {
+    alert("Le signal est accessible uniquement entre 18h00 et 20h00 !");
+    return;
+  }
+
   if (hasTradedToday) {
-    alert("Vous avez déjà exécuté votre trade aujourd'hui ! Verrouillé pendant 18h.");
+    alert("Vous avez déjà exécuté votre trade aujourd'hui ! Revenez demain à 18h00.");
     return;
   }
 
@@ -369,12 +414,10 @@ function executeDailySignal() {
     return;
   }
 
-  let rate = 0.015; // 1.5% (10$- 49$)
+  let rate = 0.015;
   if (investedBalance >= 50 && investedBalance <= 200) {
-    rate = 0.02; // 2% (50$- 200$)
-  } else if (investedBalance >= 300 && investedBalance <= 500) {
-    rate = 0.03; // 3% (300$- 500$)
-  } else if (investedBalance > 500) {
+    rate = 0.02;
+  } else if (investedBalance >= 300) {
     rate = 0.03;
   }
 
@@ -383,22 +426,20 @@ function executeDailySignal() {
   hasTradedToday = true;
 
   updateBalances();
-  lockTradeButton();
+  setupScheduleHighlight();
 
-  const record = { id: Date.now(), type: "Signal Minier", amount: `+$${profit.toFixed(2)}`, status: "Exécuté", statusClass: "text-green" };
+  const record = { 
+    id: Date.now(), 
+    type: "Signal Minier", 
+    amount: `+$${profit.toFixed(2)}`, 
+    status: "Exécuté", 
+    statusClass: "text-green" 
+  };
   historyRecords.unshift(record);
   renderHistory();
   saveUserData();
 
-  alert(`Position confirmée ! Gains journaliers : +$${profit.toFixed(2)} (${(rate * 100)}%)`);
-}
-
-function lockTradeButton() {
-  const btn = document.getElementById('executeTradeBtn');
-  btn.disabled = true;
-  btn.style.background = "#334155";
-  btn.style.color = "#94a3b8";
-  btn.innerText = "POSITION VERROUILLÉE (18H)";
+  alert(`Position confirmée ! Gains journaliers ajoutés : +$${profit.toFixed(2)} (${(rate * 100)}%)`);
 }
 
 function renderHistory() {
@@ -418,5 +459,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-    }
-                                                      
+      }
+  
