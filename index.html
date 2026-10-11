@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <!-- ÉCRAN D'AUTHENTIFICATION -->
+  <!-- ÉCRAN D'AUTHENTIFICATION (INTACT) -->
   <div id="authSection" class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
@@ -59,7 +59,7 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE BORD (STYLE APP MOBILE) -->
+  <!-- TABLEAU DE BORD -->
   <div id="appDashboard" class="dashboard-container hidden">
     
     <!-- En-tête -->
@@ -163,10 +163,11 @@
         </div>
       </div>
 
-      <!-- VUE 4 : ÉQUIPE (PARRAINAGE) -->
+      <!-- VUE 4 : ÉQUIPE (PARRAINAGE & MEMBRES COMPLÈTE) -->
       <div id="viewTeam" class="app-view hidden">
         <div class="card">
           <h2><i class="fa-solid fa-users text-gold"></i> Mon Équipe & Parrainage</h2>
+          
           <div class="input-group" style="margin-top: 10px;">
             <label>Votre Code d'invitation</label>
             <div class="copy-box">
@@ -174,14 +175,54 @@
               <button onclick="copyInviteCode()" class="btn-sm">Copier</button>
             </div>
           </div>
-          <div style="margin-top: 15px;">
-            <h3 style="font-size: 13px; margin-bottom: 8px; color: #f59e0b;">Commissions sur parrainage :</h3>
-            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
-              <li><span>Niveau 1 :</span> <b class="text-green">5%</b></li>
-              <li><span>Niveau 2 :</span> <b class="text-green">2%</b></li>
-              <li><span>Niveau 3 :</span> <b class="text-green">1%</b></li>
-            </ul>
+
+          <!-- Statistiques synthétiques -->
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; text-align: center;">
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 11px; color: #94a3b8;">Total Filleuls</span>
+              <div id="totalTeamMembers" style="font-size: 16px; font-weight: bold; color: #f59e0b;">0</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 11px; color: #94a3b8;">Niveau 1 (5%)</span>
+              <div id="teamL1Count" style="font-size: 16px; font-weight: bold; color: #22c55e;">0</div>
+            </div>
+            <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
+              <span style="font-size: 11px; color: #94a3b8;">Niveaux 2/3</span>
+              <div id="teamL2L3Count" style="font-size: 16px; font-weight: bold; color: #3b82f6;">0</div>
+            </div>
           </div>
+
+          <!-- Commissions -->
+          <div style="margin-top: 10px; background: rgba(245, 158, 11, 0.08); padding: 10px; border-radius: 8px;">
+            <h3 style="font-size: 12px; margin-bottom: 6px; color: #f59e0b;">Taux de Commission :</h3>
+            <div style="display: flex; justify-content: space-around; font-size: 12px;">
+              <span>Niveau 1 : <b class="text-green">5%</b></span>
+              <span>Niveau 2 : <b class="text-green">2%</b></span>
+              <span>Niveau 3 : <b class="text-green">1%</b></span>
+            </div>
+          </div>
+
+          <!-- Liste dynamique des membres -->
+          <div style="margin-top: 15px;">
+            <h3 style="font-size: 13px; margin-bottom: 8px; color: #f59e0b;">Membres de votre équipe :</h3>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Membre</th>
+                    <th>Niveau</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody id="teamMembersTable">
+                  <tr>
+                    <td colspan="3" style="text-align: center; color: #64748b;">Aucun filleul pour le moment</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
         </div>
       </div>
 
@@ -191,7 +232,7 @@
           <i class="fa-solid fa-circle-user" style="font-size: 40px; color: #f59e0b; margin-bottom: 5px;"></i>
           <h3 id="profileEmail" style="font-size: 13px; margin-bottom: 15px;"></h3>
           
-          <!-- Affiche publicitaire chic CIAMA TRADING générée par IA -->
+          <!-- Affiche publicitaire CIAMA TRADING -->
           <div class="promo-banner" style="background: linear-gradient(135deg, #1e1b4b, #0f172a); border: 2px solid #f59e0b; border-radius: 14px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 15px rgba(245,158,11,0.3);">
             <div style="color: #f59e0b; font-weight: 900; font-size: 16px; letter-spacing: 1px; margin-bottom: 5px;">CIAMA TRADING VIP</div>
             <p style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">L'Excellence du Signal & Copy Trading Crypto</p>
@@ -206,7 +247,7 @@
 
     </main>
 
-    <!-- MODAL RECHARGER (100% Indépendant) -->
+    <!-- MODAL RECHARGER -->
     <div id="depositModal" class="modal-overlay hidden">
       <div class="modal-card card">
         <div class="flex-between">
@@ -231,11 +272,11 @@
           <label>Preuve de paiement (Capture d'écran)</label>
           <input type="file" id="depositProof" accept="image/*" style="font-size: 11px; color:#cbd5e1;">
         </div>
-        <button onclick="submitDeposit()" class="btn-success" style="margin-top: 10px;">Valider le dépôt (5 min)</button>
+        <button onclick="submitDeposit()" class="btn-success" style="margin-top: 10px;">Valider le dépôt (1 min)</button>
       </div>
     </div>
 
-    <!-- MODAL RETIRER (100% Indépendant avec règle 24h-72h) -->
+    <!-- MODAL RETIRER -->
     <div id="withdrawModal" class="modal-overlay hidden">
       <div class="modal-card card">
         <div class="flex-between">
@@ -286,5 +327,5 @@
 
   <script src="script.js"></script>
 </body>
-  </html>
-          
+              </html>
+              
