@@ -427,13 +427,14 @@ function submitWithdrawal() {
   }, 40000); 
 }
 
+// --- CONTRÔLE HORAIRE ET WEEK-END DU SIGNAL (LUN-VEN 18H-20H) ---
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
   const currentHour = now.getHours();
 
-  const activeAsset = assetsSchedule[currentDay] || "BTC/USDT (Week-end)";
-  document.getElementById('todayAsset').innerText = activeAsset;
+  const activeAsset = assetsSchedule[currentDay] || "BTC/USDT (Fermé)";
+  document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
 
   let rateText = "1.5%";
   if (investedBalance >= 50 && investedBalance <= 200) {
@@ -446,10 +447,19 @@ function setupScheduleHighlight() {
     vipRateDisplay.innerText = rateText;
   }
 
+  // Vérification du week-end (Samedi = 6, Dimanche = 0)
+  const isWeekend = (currentDay === 0 || currentDay === 6);
+  // Vérification du créneau horaire 18h - 20h
   const isSignalTime = (currentHour >= 18 && currentHour < 20);
+
   const btn = document.getElementById('executeTradeBtn');
 
-  if (hasTradedToday) {
+  if (isWeekend) {
+    btn.disabled = true;
+    btn.style.background = "#1e293b";
+    btn.style.color = "#ef4444";
+    btn.innerText = "SIGNAL FERMÉ LE WEEK-END";
+  } else if (hasTradedToday) {
     btn.disabled = true;
     btn.style.background = "#334155";
     btn.style.color = "#94a3b8";
@@ -469,8 +479,16 @@ function setupScheduleHighlight() {
 
 function executeDailySignal() {
   const now = new Date();
+  const currentDay = now.getDay();
   const currentHour = now.getHours();
 
+  // Bloquer le week-end
+  if (currentDay === 0 || currentDay === 6) {
+    alert("Le Bassin Minier est fermé pendant le week-end !");
+    return;
+  }
+
+  // Bloquer hors créneau 18h - 20h
   if (currentHour < 18 || currentHour >= 20) {
     alert("Le signal est accessible uniquement entre 18h00 et 20h00 !");
     return;
@@ -532,5 +550,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-    }
+}
   
