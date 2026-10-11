@@ -1,4 +1,13 @@
-// --- ÉTAT DU COMPTE AVEC SAUVEGARDE LOCALE PERSISTANTE ---
+// --- CONFIGURATION SUPABASE ---
+const SUPABASE_URL = "https://ufnyqemgcfpxbkitbnxq.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_BWB4tkR__rvsP4CIKMqkGw_a5r15LuC"; 
+
+let supabaseClient = null;
+if (typeof supabase !== 'undefined') {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+}
+
+// --- ÉTAT DU COMPTE ---
 let currentUser = null;
 let investedBalance = 0;
 let dailyGains = 0;
@@ -16,32 +25,133 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-function loadUserData(email) {
+// --- INSCRIPTION SÉCURISÉE ---
+async function handleRegister(e) {
+  e.preventDefault();
+  const email = document.getElementById('regEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('regPassword').value;
+  const confirmPass = document.getElementById('regConfirmPassword').value;
+
+  if (pass !== confirmPass) {
+    alert("Les mots de passe ne correspondent pas !");
+    return;
+  }
+
+  // Vérifier si le compte existe localement
+  const existingUser = localStorage.getItem('ciama_user_' + email);
+  if (existingUser) {
+    alert("Un compte existe déjà avec cette adresse email ! Veuillez vous connecter.");
+    return;
+  }
+
+  // Créer le nouveau compte
+  const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
+  const userData = {
+    email,
+    password: pass, // Mot de passe enregistré
+    investedBalance: 0,
+    dailyGains: 0,
+    lockedWithdrawAddress: "",
+    hasTradedToday: false,
+    historyRecords: [],
+    usedDepositAmounts: [],
+    inviteCode
+  };
+
+  // Enregistrer sur le téléphone
+  localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
+
+  // Essayer d'enregistrer aussi dans Supabase si connecté
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('users').insert([
+        { email: email, password: pass, balance: 0, invite_code: inviteCode }
+      ]);
+    } catch (err) {
+      console.log("Sauvegarde Supabase en attente.");
+    }
+  }
+
+  currentUser = userData;
+  loadUserDataFromMemory(userData);
+  initDashboard();
+}
+
+// --- CONNEXION SÉCURISÉE AVEC VÉRIFICATION MOT DE PASSE ---
+async function handleLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('loginPassword').value;
+
+  // 1. Chercher le compte dans le localStorage
   const savedData = localStorage.getItem('ciama_user_' + email);
+
   if (savedData) {
     const data = JSON.parse(savedData);
-    investedBalance = data.investedBalance || 0;
-    dailyGains = data.dailyGains || 0;
-    lockedWithdrawAddress = data.lockedWithdrawAddress || "";
-    hasTradedToday = data.hasTradedToday || false;
-    historyRecords = data.historyRecords || [];
-    usedDepositAmounts = data.usedDepositAmounts || [];
-    currentUser = { email, inviteCode: data.inviteCode };
-  } else {
-    currentUser = { email, inviteCode: "CIAMA" + Math.floor(1000 + Math.random() * 9000) };
-    investedBalance = 0;
-    dailyGains = 0;
-    lockedWithdrawAddress = "";
-    hasTradedToday = false;
-    historyRecords = [];
-    usedDepositAmounts = [];
-    saveUserData();
+    
+    // VÉRIFICATION DU MOT DE PASSE
+    if (data.password && data.password !== pass) {
+      alert("Mot de passe incorrect ! Veuillez réessayer.");
+      return;
+    }
+
+    currentUser = data;
+    loadUserDataFromMemory(data);
+    initDashboard();
+    return;
   }
+
+  // 2. Si le compte n'est pas sur cet appareil, vérifier dans Supabase
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('email', email)
+        .eq('password', pass)
+        .single();
+
+      if (data) {
+        currentUser = {
+          email: data.email,
+          password: data.password,
+          investedBalance: data.balance || 0,
+          dailyGains: data.daily_gains || 0,
+          lockedWithdrawAddress: data.withdraw_address || "",
+          hasTradedToday: false,
+          historyRecords: [],
+          usedDepositAmounts: [],
+          inviteCode: data.invite_code || "CIAMA100"
+        };
+
+        // Synchroniser sur ce nouvel appareil
+        saveUserData();
+        loadUserDataFromMemory(currentUser);
+        initDashboard();
+        return;
+      }
+    } catch (err) {
+      console.log("Erreur de connexion cloud", err);
+    }
+  }
+
+  alert("Aucun compte trouvé avec cet email ou mot de passe incorrect !");
+}
+
+function loadUserDataFromMemory(data) {
+  investedBalance = data.investedBalance || 0;
+  dailyGains = data.dailyGains || 0;
+  lockedWithdrawAddress = data.lockedWithdrawAddress || "";
+  hasTradedToday = data.hasTradedToday || false;
+  historyRecords = data.historyRecords || [];
+  usedDepositAmounts = data.usedDepositAmounts || [];
 }
 
 function saveUserData() {
   if (!currentUser) return;
   const data = {
+    email: currentUser.email,
+    password: currentUser.password,
     investedBalance,
     dailyGains,
     lockedWithdrawAddress,
@@ -50,7 +160,20 @@ function saveUserData() {
     usedDepositAmounts,
     inviteCode: currentUser.inviteCode
   };
+  
+  // Sauvegarde locale
   localStorage.setItem('ciama_user_' + currentUser.email, JSON.stringify(data));
+
+  // Mettre à jour dans Supabase en arrière-plan
+  if (supabaseClient) {
+    supabaseClient.from('users').upsert({
+      email: currentUser.email,
+      password: currentUser.password,
+      balance: investedBalance,
+      daily_gains: dailyGains,
+      withdraw_address: lockedWithdrawAddress
+    }).then();
+  }
 }
 
 function switchAuthTab(tab) {
@@ -70,28 +193,6 @@ function switchAuthTab(tab) {
     loginBtn.className = "active-tab";
     regBtn.className = "";
   }
-}
-
-function handleRegister(e) {
-  e.preventDefault();
-  const email = document.getElementById('regEmail').value.trim();
-  const pass = document.getElementById('regPassword').value;
-  const confirmPass = document.getElementById('regConfirmPassword').value;
-
-  if (pass !== confirmPass) {
-    alert("Les mots de passe ne correspondent pas !");
-    return;
-  }
-
-  loadUserData(email);
-  initDashboard();
-}
-
-function handleLogin(e) {
-  e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  loadUserData(email);
-  initDashboard();
 }
 
 function logout() {
@@ -240,7 +341,6 @@ function submitWithdrawal() {
 
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 
-  // Simulation d'approbation automatique après un délai de test
   setTimeout(() => {
     record.status = "Approuvé";
     record.statusClass = "text-green";
@@ -312,6 +412,15 @@ function renderHistory() {
       <td><b>${rec.type}</b></td>
       <td><b>${rec.amount}</b></td>
       <td class="${rec.statusClass}" style="font-weight:bold;">${rec.status}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function copyInviteCode() {
+  navigator.clipboard.writeText(currentUser.inviteCode);
+  alert("Code d'invitation copié !");
+}
     `;
     tbody.appendChild(tr);
   });
