@@ -16,6 +16,7 @@ let hasTradedToday = false;
 let historyRecords = [];
 let hasCopiedAddress = false;
 let usedDepositAmounts = [];
+let teamMembers = []; // Liste des filleuls
 
 const assetsSchedule = {
   1: "BTC/USDT",
@@ -25,12 +26,13 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE ---
+// --- INSCRIPTION SÉCURISÉE AVEC DESTRUCTION ET REMONTÉE AU PARRAIN ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const pass = document.getElementById('regPassword').value;
   const confirmPass = document.getElementById('regConfirmPassword').value;
+  const inviteCodeInput = document.getElementById('regInviteCode').value.trim().toUpperCase();
 
   if (!email || !pass) {
     alert("Veuillez remplir tous les champs !");
@@ -58,15 +60,22 @@ async function handleRegister(e) {
     hasTradedToday: false,
     historyRecords: [],
     usedDepositAmounts: [],
-    inviteCode
+    inviteCode,
+    referredBy: inviteCodeInput || null,
+    teamMembers: []
   };
+
+  // Enregistrement du nouveau filleul chez le parrain s'il y a un code d'invitation
+  if (inviteCodeInput) {
+    addReferralToSponsor(inviteCodeInput, email);
+  }
 
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
   if (supabaseClient) {
     try {
       await supabaseClient.from('users').insert([
-        { email: email, password: pass, balance: 0, invite_code: inviteCode }
+        { email: email, password: pass, balance: 0, invite_code: inviteCode, referred_by: inviteCodeInput }
       ]);
     } catch (err) {
       console.log("Sauvegarde Supabase en attente.");
@@ -78,7 +87,29 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// --- CONNEXION CORRIGÉE (FIX UNDEFINED & VÉRIFICATION STRICTE) ---
+// Fonction pour associer le filleul au parrain dans le localStorage
+function addReferralToSponsor(sponsorCode, referralEmail) {
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key.startsWith('ciama_user_')) {
+      try {
+        const uData = JSON.parse(localStorage.getItem(key));
+        if (uData.inviteCode === sponsorCode) {
+          if (!uData.teamMembers) uData.teamMembers = [];
+          uData.teamMembers.push({
+            email: referralEmail,
+            level: "Niveau 1",
+            date: new Date().toLocaleDateString('fr-FR')
+          });
+          localStorage.setItem(key, JSON.stringify(uData));
+          break;
+        }
+      } catch (err) {}
+    }
+  }
+}
+
+// --- CONNEXION AVEC CHARGEMENT DE L'ÉQUIPE ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -89,26 +120,21 @@ async function handleLogin(e) {
     return;
   }
 
-  // 1. Recherche dans le stockage local
   let savedData = localStorage.getItem('ciama_user_' + email);
 
   if (savedData) {
     const data = JSON.parse(savedData);
     
-    // Si un mot de passe est enregistré, on le vérifie obligatoirement
     if (data.password && data.password !== pass) {
       alert("Mot de passe incorrect ! Veuillez réessayer.");
       return;
     }
 
-    // Si c'est un ancien compte sans mot de passe, on enregistre le mot de passe saisi
     if (!data.password) {
       data.password = pass;
     }
 
-    // Correction essentielle du problème undefined :
-    data.email = email; 
-
+    data.email = email;
     currentUser = data;
     loadUserDataFromMemory(data);
     saveUserData();
@@ -116,7 +142,6 @@ async function handleLogin(e) {
     return;
   }
 
-  // 2. Recherche cloud dans Supabase si non trouvé localement
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
@@ -140,7 +165,8 @@ async function handleLogin(e) {
           hasTradedToday: false,
           historyRecords: [],
           usedDepositAmounts: [],
-          inviteCode: data.invite_code || "CIAMA100"
+          inviteCode: data.invite_code || "CIAMA100",
+          teamMembers: []
         };
 
         saveUserData();
@@ -163,6 +189,7 @@ function loadUserDataFromMemory(data) {
   hasTradedToday = data.hasTradedToday || false;
   historyRecords = data.historyRecords || [];
   usedDepositAmounts = data.usedDepositAmounts || [];
+  teamMembers = data.teamMembers || [];
 }
 
 function saveUserData() {
@@ -176,7 +203,8 @@ function saveUserData() {
     hasTradedToday,
     historyRecords,
     usedDepositAmounts,
-    inviteCode: currentUser.inviteCode
+    inviteCode: currentUser.inviteCode,
+    teamMembers
   };
   
   localStorage.setItem('ciama_user_' + currentUser.email, JSON.stringify(data));
@@ -221,7 +249,6 @@ function initDashboard() {
   document.getElementById('authSection').classList.add('hidden');
   document.getElementById('appDashboard').classList.remove('hidden');
   
-  // Affichage garanti de l'adresse email en haut à droite
   const displayEmail = (currentUser && currentUser.email) ? currentUser.email : "Utilisateur";
   document.getElementById('userEmailDisplay').innerText = displayEmail;
   document.getElementById('profileEmail').innerText = displayEmail;
@@ -244,6 +271,7 @@ function initDashboard() {
   updateBalances();
   setupScheduleHighlight();
   renderHistory();
+  renderTeam();
   switchNavTab('maison');
 }
 
@@ -253,6 +281,33 @@ function updateBalances() {
   document.getElementById('investedBalance').innerText = `$${investedBalance.toFixed(2)}`;
   document.getElementById('dailyGainsBalance').innerText = `+$${dailyGains.toFixed(2)}`;
   saveUserData();
+}
+
+function renderTeam() {
+  const tbody = document.getElementById('teamMembersTable');
+  const totalCountEl = document.getElementById('totalTeamMembers');
+  const l1CountEl = document.getElementById('teamL1Count');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = "";
+  totalCountEl.innerText = teamMembers.length;
+  l1CountEl.innerText = teamMembers.length;
+
+  if (teamMembers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Aucun filleul pour le moment</td></tr>`;
+    return;
+  }
+
+  teamMembers.forEach(m => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${m.email}</b></td>
+      <td><span class="text-green" style="font-weight:bold;">${m.level}</span></td>
+      <td style="font-size: 11px; color: #cbd5e1;">${m.date}</td>
+    `;
+    tbody.appendChild(tr);
+  });
 }
 
 function switchNavTab(tabName) {
@@ -372,7 +427,6 @@ function submitWithdrawal() {
   }, 40000); 
 }
 
-// --- CONTRÔLE HORAIRE DU SIGNAL (18H00 À 20H00 STRICT) ---
 function setupScheduleHighlight() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -462,6 +516,7 @@ function executeDailySignal() {
 
 function renderHistory() {
   const tbody = document.getElementById('historyTable');
+  if (!tbody) return;
   tbody.innerHTML = "";
   historyRecords.forEach(rec => {
     const tr = document.createElement('tr');
@@ -477,5 +532,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-}
+    }
   
