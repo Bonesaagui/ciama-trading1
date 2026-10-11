@@ -3,21 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CIAMA TRADING - Plateforme</title>
+  <title>CIAMA TRADING</title>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="style.css">
-
-  <!-- Client Supabase officiel pour la synchronisation dynamique -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <!-- ÉCRAN D'AUTHENTIFICATION (INSCRIPTION / CONNEXION) -->
+  <!-- ÉCRAN D'AUTHENTIFICATION -->
   <div id="authSection" class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
         <h1 class="logo-text">CIAMA TRADING</h1>
-        <p>Plateforme de Signal & Copy Trading</p>
+        <p>Plateforme d'investissement & Trading</p>
       </div>
 
       <div class="auth-tabs">
@@ -25,7 +23,7 @@
         <button id="tabLoginBtn" onclick="switchAuthTab('login')">Se connecter</button>
       </div>
 
-      <!-- Formulaire Inscription -->
+      <!-- Inscription -->
       <form id="registerForm" onsubmit="handleRegister(event)" class="auth-form">
         <div class="input-group">
           <label>Adresse mail</label>
@@ -46,7 +44,7 @@
         <button type="submit" class="btn-primary">S'inscrire</button>
       </form>
 
-      <!-- Formulaire Connexion -->
+      <!-- Connexion -->
       <form id="loginForm" onsubmit="handleLogin(event)" class="auth-form hidden">
         <div class="input-group">
           <label>Adresse mail</label>
@@ -61,10 +59,10 @@
     </div>
   </div>
 
-  <!-- TABLEAU DE BORD (MASQUÉ PAR DÉFAUT) -->
+  <!-- TABLEAU DE BORD (STYLE APP MOBILE) -->
   <div id="appDashboard" class="dashboard-container hidden">
     
-    <!-- Navbar -->
+    <!-- En-tête -->
     <header class="navbar">
       <div class="nav-brand">
         <span class="logo-text">CIAMA TRADING</span>
@@ -77,146 +75,216 @@
 
     <main class="main-content">
 
-      <!-- Soldes -->
-      <div class="grid-3">
-        <div class="card">
-          <span class="card-title">Solde Principal Investi</span>
-          <div id="investedBalance" class="card-value">$0.00</div>
-          <span class="card-desc">Capital servant aux calculs de signaux</span>
+      <!-- VUE 1 : MAISON (ACCUEIL) -->
+      <div id="viewMaison" class="app-view">
+        <div class="card balance-main-card">
+          <span class="card-title">Total des actifs</span>
+          <div id="totalAssetsBalance" class="card-value-large">$0.00</div>
+          <div class="sub-balances">
+            <div>Portefeuille d'investissement: <b id="investedBalance">$0.00</b></div>
+            <div>Gains journaliers: <b id="dailyGainsBalance" class="text-green">+$0.00</b></div>
+          </div>
         </div>
-        <div class="card">
-          <span class="card-title">Gains Journaliers</span>
-          <div id="dailyGainsBalance" class="card-value text-green">+$0.00</div>
-          <span class="card-desc">Intérêts générés via les trades</span>
+
+        <!-- Grille d'actions rapides -->
+        <div class="quick-actions-grid">
+          <div class="quick-action-item" onclick="openModal('depositModal')">
+            <i class="fa-solid fa-wallet"></i>
+            <span>Recharger</span>
+          </div>
+          <div class="quick-action-item" onclick="openModal('withdrawModal')">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            <span>Retirer</span>
+          </div>
+          <div class="quick-action-item" onclick="switchNavTab('vip')">
+            <i class="fa-solid fa-crown"></i>
+            <span>VIP</span>
+          </div>
+          <div class="quick-action-item">
+            <i class="fa-solid fa-chart-line"></i>
+            <span>Activité</span>
+          </div>
         </div>
-        <div class="card flex-col">
+
+        <!-- Historique des Transactions -->
+        <div class="card" style="margin-top: 15px;">
+          <h2>Historique récent</h2>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>Montant</th>
+                  <th>Statut</th>
+                </tr>
+              </thead>
+              <tbody id="historyTable"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- VUE 2 : VIP -->
+      <div id="viewVip" class="app-view hidden">
+        <div class="card">
+          <h2><i class="fa-solid fa-crown text-gold"></i> Paliers VIP & Rendements</h2>
+          <p class="text-small">Profitez de rendements quotidiens permanents sur votre capital investi :</p>
+          
+          <div class="vip-tier-card">
+            <div><b>VIP 1</b><br><span class="text-small">10$ à 49$</span></div>
+            <div class="text-gold font-bold">1,5% / jour</div>
+          </div>
+          <div class="vip-tier-card">
+            <div><b>VIP 2</b><br><span class="text-small">50$ à 200$</span></div>
+            <div class="text-gold font-bold">2% / jour</div>
+          </div>
+          <div class="vip-tier-card">
+            <div><b>VIP 3</b><br><span class="text-small">300$ à 500$</span></div>
+            <div class="text-gold font-bold">3% / jour</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VUE 3 : BASSIN MINIER (ESPACE SIGNAL) -->
+      <div id="viewMining" class="app-view hidden">
+        <div class="card">
           <div class="flex-between">
-            <span class="card-title">Code de Parrainage</span>
-            <span class="badge-green">5% Commission</span>
+            <h2><i class="fa-solid fa-bolt text-gold"></i> Bassin Minier (Signal)</h2>
+            <span class="badge-time">18h - 20h</span>
           </div>
-          <div class="copy-box">
-            <input id="inviteCodeDisplay" readonly type="text">
-            <button onclick="copyInviteCode()" class="btn-sm">Copier</button>
+          <div class="signal-info-grid" style="margin: 10px 0; font-size: 13px;">
+            <div>Actif du jour : <b id="todayAsset" class="text-gold">-</b></div>
+            <div>Rendement actif : <b id="currentVipRate" class="text-green">1.5%</b></div>
           </div>
+          <p class="text-small" style="margin-bottom: 10px;">Confirmez votre position quotidienne. Verrouillé pendant 18h après exécution.</p>
+          <button id="executeTradeBtn" onclick="executeDailySignal()" class="btn-trade">
+            CONFIRMER L'OUVERTURE DE LA POSITION
+          </button>
         </div>
       </div>
 
-      <!-- Dépôt & Retrait -->
-      <div class="grid-2">
-        <!-- Dépôt -->
+      <!-- VUE 4 : ÉQUIPE (PARRAINAGE) -->
+      <div id="viewTeam" class="app-view hidden">
         <div class="card">
-          <h2><i class="fa-solid fa-wallet text-gold"></i> Dépôt (BEP20)</h2>
-          <div class="alert-box">
-            🎁 <b>Bonus de Dépôt :</b> Obtenez $1.00 de bonus offert à chaque demande !
-          </div>
-          <div class="input-group">
-            <label>Adresse de dépôt officielle (USDT - BEP20)</label>
+          <h2><i class="fa-solid fa-users text-gold"></i> Mon Équipe & Parrainage</h2>
+          <div class="input-group" style="margin-top: 10px;">
+            <label>Votre Code d'invitation</label>
             <div class="copy-box">
-              <input type="text" readonly value="0xdf68475aD0F9F0d1aaC6d0196b31783127222203" id="depositAddr">
-              <button onclick="copyDepositAddress()" class="btn-sm">Copier</button>
+              <input id="inviteCodeDisplay" readonly type="text">
+              <button onclick="copyInviteCode()" class="btn-sm">Copier</button>
             </div>
           </div>
-          <div class="input-group">
-            <label>Montant du dépôt ($)</label>
-            <input type="number" id="depositAmount" min="10" placeholder="Ex: 100">
-          </div>
-          <button onclick="submitDeposit()" class="btn-success">Valider le dépôt</button>
-          <span class="text-tiny">Crédité sous 10 minutes</span>
-        </div>
-
-        <!-- Retrait -->
-        <div class="card">
-          <h2><i class="fa-solid fa-arrow-up-right-from-square text-gold"></i> Demande de Retrait</h2>
-          <div class="input-group">
-            <label>Adresse Crypto USDT (Verrouillée après saisie)</label>
-            <input type="text" id="withdrawAddress" placeholder="Saisir votre adresse USDT">
-          </div>
-          <div class="input-group">
-            <label>Montant du retrait ($)</label>
-            <input type="number" id="withdrawAmount" placeholder="Ex: 50">
-          </div>
-          <button onclick="submitWithdrawal()" class="btn-danger">Confirmer le retrait</button>
-          <span class="text-tiny">Traitement automatique sous 24h</span>
-        </div>
-      </div>
-
-      <!-- Planning & Espace Trading -->
-      <div class="grid-layout">
-        <!-- Planning -->
-        <div class="card">
-          <h2><i class="fa-solid fa-calendar-days text-gold"></i> Planning Hebdomadaire</h2>
-          <ul class="schedule-list">
-            <li id="day-1"><span>Lundi</span> <b class="text-gold">BTC/USDT</b></li>
-            <li id="day-2"><span>Mardi</span> <b class="text-gold">ETH/USDT</b></li>
-            <li id="day-3"><span>Mercredi</span> <b class="text-gold">BNB/USDT</b></li>
-            <li id="day-4"><span>Jeudi</span> <b class="text-gold">SOL/USDT</b></li>
-            <li id="day-5"><span>Vendredi</span> <b class="text-gold">XRP/USDT</b></li>
-          </ul>
-        </div>
-
-        <!-- Espace Signal -->
-        <div class="card flex-space">
-          <div>
-            <div class="flex-between border-b pb-2">
-              <h2><i class="fa-solid fa-bolt text-gold"></i> Espace de Trading du Signal</h2>
-              <span class="badge-time">Horaire : <b>18h - 20h</b></span>
-            </div>
-            <div class="signal-grid">
-              <div class="signal-box">
-                <span class="text-tiny">Actif du Jour</span>
-                <div id="todayAsset" class="signal-val">-</div>
-              </div>
-              <div class="signal-box">
-                <span class="text-tiny">Position</span>
-                <div class="signal-val text-green">ACHAT (BUY)</div>
-              </div>
-              <div class="signal-box">
-                <span class="text-tiny">Taux de Gain</span>
-                <div class="signal-val text-green">+1.5% / +2%</div>
-              </div>
-              <div class="signal-box">
-                <span class="text-tiny">Statut</span>
-                <div id="signalStatus" class="signal-val text-gold">1 Trade / Jour</div>
-              </div>
-            </div>
-          </div>
-          <div class="trade-action-box">
-            <div class="flex-between text-small">
-              <span>Capital engagé :</span>
-              <span id="tradeCapitalText" class="font-bold">$0.00</span>
-            </div>
-            <button id="executeTradeBtn" onclick="executeDailySignal()" class="btn-trade">
-              CONFIRMER L'OUVERTURE DE LA POSITION
-            </button>
+          <div style="margin-top: 15px;">
+            <h3 style="font-size: 13px; margin-bottom: 8px; color: #f59e0b;">Commissions sur parrainage :</h3>
+            <ul style="list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 12px;">
+              <li><span>Niveau 1 :</span> <b class="text-green">5%</b></li>
+              <li><span>Niveau 2 :</span> <b class="text-green">2%</b></li>
+              <li><span>Niveau 3 :</span> <b class="text-green">1%</b></li>
+            </ul>
           </div>
         </div>
       </div>
 
-      <!-- Historique -->
-      <div class="card">
-        <h2>Historique des Transactions & Dépôts</h2>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Type</th>
-                <th>Montant</th>
-                <th>Détails</th>
-                <th>Statut</th>
-                <th>Date</th>
-              </tr>
-            </thead>
-            <tbody id="historyTable">
-              <!-- Dynamique -->
-            </tbody>
-          </table>
+      <!-- VUE 5 : MOI (PROFIL & AFFICHE PUBLICITAIRE) -->
+      <div id="viewProfile" class="app-view hidden">
+        <div class="card" style="text-align: center; padding: 20px;">
+          <i class="fa-solid fa-circle-user" style="font-size: 40px; color: #f59e0b; margin-bottom: 5px;"></i>
+          <h3 id="profileEmail" style="font-size: 13px; margin-bottom: 15px;"></h3>
+          
+          <!-- Affiche publicitaire chic CIAMA TRADING générée par IA -->
+          <div class="promo-banner" style="background: linear-gradient(135deg, #1e1b4b, #0f172a); border: 2px solid #f59e0b; border-radius: 14px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 15px rgba(245,158,11,0.3);">
+            <div style="color: #f59e0b; font-weight: 900; font-size: 16px; letter-spacing: 1px; margin-bottom: 5px;">CIAMA TRADING VIP</div>
+            <p style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">L'Excellence du Signal & Copy Trading Crypto</p>
+            <div style="background: rgba(245,158,11,0.15); border-radius: 8px; padding: 8px; font-size: 11px; color: #fcd34d; font-weight: bold;">
+              🚀 Jusqu'à 3% de rendement journalier permanent !
+            </div>
+          </div>
+
+          <button onclick="logout()" class="btn-danger" style="width: 100%;">Déconnexion</button>
         </div>
       </div>
 
     </main>
+
+    <!-- MODAL RECHARGER (100% Indépendant) -->
+    <div id="depositModal" class="modal-overlay hidden">
+      <div class="modal-card card">
+        <div class="flex-between">
+          <h2>Recharger (BEP20)</h2>
+          <button onclick="closeModal('depositModal')" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="alert-box" style="margin-top: 10px;">
+          🎁 Bonus : +$1.00 offert ! (Le montant ne peut pas être réutilisé à l'identique).
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Adresse USDT (BEP20) - <b>Étape 1 : Copier l'adresse</b></label>
+          <div class="copy-box">
+            <input type="text" readonly value="0x889A80AA548Be995636864039235E434Bb26eC06" id="depositAddr">
+            <button onclick="markAddressCopied()" class="btn-sm">Copier</button>
+          </div>
+        </div>
+        <div class="input-group">
+          <label>Montant du dépôt ($) - Min: 10$</label>
+          <input type="number" id="depositAmount" min="10" placeholder="Ex: 55">
+        </div>
+        <div class="input-group">
+          <label>Preuve de paiement (Capture d'écran)</label>
+          <input type="file" id="depositProof" accept="image/*" style="font-size: 11px; color:#cbd5e1;">
+        </div>
+        <button onclick="submitDeposit()" class="btn-success" style="margin-top: 10px;">Valider le dépôt (5 min)</button>
+      </div>
+    </div>
+
+    <!-- MODAL RETIRER (100% Indépendant avec règle 24h-72h) -->
+    <div id="withdrawModal" class="modal-overlay hidden">
+      <div class="modal-card card">
+        <div class="flex-between">
+          <h2>Retrait des Gains</h2>
+          <button onclick="closeModal('withdrawModal')" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <p class="text-small" style="margin-top: 5px;">Seuls les gains journaliers peuvent être retirés. Le capital investi reste gelé en permanence.</p>
+        <div class="alert-box" style="margin-top: 8px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd;">
+          ⏳ <b>Délai de traitement :</b> Les retraits durent 24h à 72h pour être approuvés. Votre demande apparaîtra en attente.
+        </div>
+        <div class="input-group" style="margin-top: 10px;">
+          <label>Adresse USDT (Verrouillée après saisie)</label>
+          <input type="text" id="withdrawAddress" placeholder="Votre adresse USDT">
+        </div>
+        <div class="input-group">
+          <label>Montant du retrait ($)</label>
+          <input type="number" id="withdrawAmount" placeholder="Ex: 25">
+        </div>
+        <button onclick="submitWithdrawal()" class="btn-danger" style="margin-top: 10px;">Confirmer le retrait</button>
+      </div>
+    </div>
+
+    <!-- Barre de Navigation Inférieure -->
+    <nav class="bottom-nav-bar">
+      <button onclick="switchNavTab('maison')" class="nav-bar-item active" id="navMaison">
+        <i class="fa-solid fa-house"></i>
+        <span>Maison</span>
+      </button>
+      <button onclick="switchNavTab('vip')" class="nav-bar-item" id="navVip">
+        <i class="fa-solid fa-crown"></i>
+        <span>VIP</span>
+      </button>
+      <button onclick="switchNavTab('mining')" class="nav-bar-item" id="navMining">
+        <i class="fa-solid fa-network-wired"></i>
+        <span>Bassin minier</span>
+      </button>
+      <button onclick="switchNavTab('team')" class="nav-bar-item" id="navTeam">
+        <i class="fa-solid fa-users"></i>
+        <span>Équipe</span>
+      </button>
+      <button onclick="switchNavTab('profile')" class="nav-bar-item" id="navProfile">
+        <i class="fa-solid fa-user"></i>
+        <span>Moi</span>
+      </button>
+    </nav>
+
   </div>
 
   <script src="script.js"></script>
 </body>
-</html>
-
+  </html>
+          
