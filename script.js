@@ -37,18 +37,16 @@ async function handleRegister(e) {
     return;
   }
 
-  // Vérifier si le compte existe localement
   const existingUser = localStorage.getItem('ciama_user_' + email);
   if (existingUser) {
     alert("Un compte existe déjà avec cette adresse email ! Veuillez vous connecter.");
     return;
   }
 
-  // Créer le nouveau compte
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
   const userData = {
     email,
-    password: pass, // Mot de passe enregistré
+    password: pass,
     investedBalance: 0,
     dailyGains: 0,
     lockedWithdrawAddress: "",
@@ -58,10 +56,8 @@ async function handleRegister(e) {
     inviteCode
   };
 
-  // Enregistrer sur le téléphone
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
-  // Essayer d'enregistrer aussi dans Supabase si connecté
   if (supabaseClient) {
     try {
       await supabaseClient.from('users').insert([
@@ -77,44 +73,48 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// --- CONNEXION SÉCURISÉE AVEC VÉRIFICATION MOT DE PASSE ---
+// --- CONNEXION AVEC COMPATIBILITÉ ANCIENS COMPTES ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const pass = document.getElementById('loginPassword').value;
 
-  // 1. Chercher le compte dans le localStorage
   const savedData = localStorage.getItem('ciama_user_' + email);
 
   if (savedData) {
     const data = JSON.parse(savedData);
     
-    // VÉRIFICATION DU MOT DE PASSE
+    // Si un mot de passe existe, on le vérifie. Sinon, on l'autorise (ancien compte)
     if (data.password && data.password !== pass) {
       alert("Mot de passe incorrect ! Veuillez réessayer.");
       return;
     }
 
+    // Si c'est un ancien compte sans mot de passe enregistré, on lui associe le mot de passe actuel
+    if (!data.password) {
+      data.password = pass;
+    }
+
     currentUser = data;
     loadUserDataFromMemory(data);
+    saveUserData();
     initDashboard();
     return;
   }
 
-  // 2. Si le compte n'est pas sur cet appareil, vérifier dans Supabase
+  // Vérification dans Supabase si non trouvé localement
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', pass)
         .single();
 
       if (data) {
         currentUser = {
           email: data.email,
-          password: data.password,
+          password: data.password || pass,
           investedBalance: data.balance || 0,
           dailyGains: data.daily_gains || 0,
           lockedWithdrawAddress: data.withdraw_address || "",
@@ -124,7 +124,6 @@ async function handleLogin(e) {
           inviteCode: data.invite_code || "CIAMA100"
         };
 
-        // Synchroniser sur ce nouvel appareil
         saveUserData();
         loadUserDataFromMemory(currentUser);
         initDashboard();
@@ -135,7 +134,7 @@ async function handleLogin(e) {
     }
   }
 
-  alert("Aucun compte trouvé avec cet email ou mot de passe incorrect !");
+  alert("Aucun compte trouvé avec cet email ! Veuillez vous inscrire d'abord.");
 }
 
 function loadUserDataFromMemory(data) {
@@ -161,10 +160,8 @@ function saveUserData() {
     inviteCode: currentUser.inviteCode
   };
   
-  // Sauvegarde locale
   localStorage.setItem('ciama_user_' + currentUser.email, JSON.stringify(data));
 
-  // Mettre à jour dans Supabase en arrière-plan
   if (supabaseClient) {
     supabaseClient.from('users').upsert({
       email: currentUser.email,
@@ -294,13 +291,14 @@ function submitDeposit() {
   usedDepositAmounts.push(amount);
   closeModal('depositModal');
 
-  const record = { id: Date.now(), type: "Dépôt USDT (BEP20)", amount: `$${amount.toFixed(2)}`, status: "En attente (5 min)", statusClass: "text-gold" };
+  const record = { id: Date.now(), type: "Dépôt USDT (BEP20)", amount: `$${amount.toFixed(2)}`, status: "En attente (1 min)", statusClass: "text-gold" };
   historyRecords.unshift(record);
   renderHistory();
   saveUserData();
 
-  alert("Demande de dépôt enregistrée. Compte crédité automatiquement dans 5 minutes !");
+  alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
+  // Crédit automatique après 1 minute (60 000 ms)
   setTimeout(() => {
     investedBalance += amount + 1.00; // +$1 bonus
     updateBalances();
@@ -308,7 +306,7 @@ function submitDeposit() {
     record.statusClass = "text-green";
     renderHistory();
     saveUserData();
-  }, 300000); // 5 minutes
+  }, 60000); 
 }
 
 function submitWithdrawal() {
@@ -420,4 +418,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-}
+    }
+                                                      
