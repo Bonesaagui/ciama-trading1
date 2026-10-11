@@ -421,13 +421,3 @@ function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
 }
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function copyInviteCode() {
-  navigator.clipboard.writeText(currentUser.inviteCode);
-  alert("Code d'invitation copié !");
-                                                                         }
-    
