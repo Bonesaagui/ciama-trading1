@@ -25,7 +25,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE AVEC AUTHENTIFICATION ---
+// --- INSCRIPTION SÉCURISÉE ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -78,7 +78,7 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// --- CONNEXION AVEC VÉRIFICATION STRICTE DE L'AUTHENTIFICATION ---
+// --- CONNEXION CORRIGÉE (FIX UNDEFINED & VÉRIFICATION STRICTE) ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -89,38 +89,51 @@ async function handleLogin(e) {
     return;
   }
 
-  // 1. Vérification dans le stockage local
+  // 1. Recherche dans le stockage local
   let savedData = localStorage.getItem('ciama_user_' + email);
 
   if (savedData) {
     const data = JSON.parse(savedData);
     
-    // Vérification stricte du mot de passe
+    // Si un mot de passe est enregistré, on le vérifie obligatoirement
     if (data.password && data.password !== pass) {
       alert("Mot de passe incorrect ! Veuillez réessayer.");
       return;
     }
 
+    // Si c'est un ancien compte sans mot de passe, on enregistre le mot de passe saisi
+    if (!data.password) {
+      data.password = pass;
+    }
+
+    // Correction essentielle du problème undefined :
+    data.email = email; 
+
     currentUser = data;
     loadUserDataFromMemory(data);
+    saveUserData();
     initDashboard();
     return;
   }
 
-  // 2. Vérification dans Supabase (Cloud) si non trouvé localement
+  // 2. Recherche cloud dans Supabase si non trouvé localement
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
         .from('users')
         .select('*')
         .eq('email', email)
-        .eq('password', pass)
         .single();
 
       if (data) {
+        if (data.password && data.password !== pass) {
+          alert("Mot de passe incorrect !");
+          return;
+        }
+
         currentUser = {
-          email: data.email,
-          password: data.password,
+          email: data.email || email,
+          password: data.password || pass,
           investedBalance: data.balance || 0,
           dailyGains: data.daily_gains || 0,
           lockedWithdrawAddress: data.withdraw_address || "",
@@ -140,8 +153,7 @@ async function handleLogin(e) {
     }
   }
 
-  // Si le compte n'existe ni localement ni sur Supabase avec ce mot de passe
-  alert("Aucun compte trouvé avec cet email ou mot de passe incorrect ! Veuillez vous inscrire.");
+  alert("Aucun compte trouvé avec cet email ! Veuillez d'abord vous inscrire.");
 }
 
 function loadUserDataFromMemory(data) {
@@ -154,7 +166,7 @@ function loadUserDataFromMemory(data) {
 }
 
 function saveUserData() {
-  if (!currentUser) return;
+  if (!currentUser || !currentUser.email) return;
   const data = {
     email: currentUser.email,
     password: currentUser.password,
@@ -208,9 +220,15 @@ function logout() {
 function initDashboard() {
   document.getElementById('authSection').classList.add('hidden');
   document.getElementById('appDashboard').classList.remove('hidden');
-  document.getElementById('userEmailDisplay').innerText = currentUser.email;
-  document.getElementById('profileEmail').innerText = currentUser.email;
-  document.getElementById('inviteCodeDisplay').value = currentUser.inviteCode;
+  
+  // Affichage garanti de l'adresse email en haut à droite
+  const displayEmail = (currentUser && currentUser.email) ? currentUser.email : "Utilisateur";
+  document.getElementById('userEmailDisplay').innerText = displayEmail;
+  document.getElementById('profileEmail').innerText = displayEmail;
+  
+  if (document.getElementById('inviteCodeDisplay')) {
+    document.getElementById('inviteCodeDisplay').value = currentUser.inviteCode || "";
+  }
 
   const withdrawInput = document.getElementById('withdrawAddress');
   if (lockedWithdrawAddress) {
@@ -459,5 +477,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-      }
+}
   
