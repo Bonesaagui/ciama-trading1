@@ -10,6 +10,7 @@ body {
   background: linear-gradient(135deg, #070913 0%, #0d1224 50%, #15102a 100%);
   color: #f1f5f9;
   min-height: 100vh;
+  padding-bottom: 80px; /* Espace pour la barre de navigation mobile */
 }
 
 /* AUTHENTIFICATION */
@@ -162,17 +163,6 @@ body {
   color: #f59e0b;
 }
 
-.badge-demo {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.3);
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  margin-left: 10px;
-  font-weight: 700;
-}
-
 .nav-user {
   display: flex;
   align-items: center;
@@ -195,53 +185,31 @@ body {
 }
 
 .main-content {
-  max-width: 1200px;
+  max-width: 600px;
   width: 100%;
   margin: 0 auto;
-  padding: 20px;
+  padding: 15px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 15px;
   flex: 1;
 }
 
-/* CARTES ET GRILLES */
-.grid-3 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 15px;
-}
-
-.grid-2 {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 15px;
-}
-
-.grid-layout {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 15px;
-}
-
-@media(max-width: 768px) {
-  .grid-layout { grid-template-columns: 1fr; }
-}
-
+/* CARTES ET GRILLES DE STYLE APPLICATION */
 .card {
-  background: rgba(15, 22, 41, 0.75);
+  background: rgba(15, 22, 41, 0.85);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
-  padding: 20px;
+  padding: 18px;
   display: flex;
   flex-direction: column;
-  gap: 15px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+  gap: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.4);
 }
 
 .card h2 {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 700;
   color: #f1f5f9;
   display: flex;
@@ -262,29 +230,113 @@ body {
   color: #fff;
 }
 
-.card-desc {
-  font-size: 11px;
-  color: #64748b;
+/* Grille 2 colonnes pour Dépôt/Retrait */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
 }
 
-/* DIVERS ÉLÉMENTS UI */
+@media(max-width: 500px) {
+  .grid-2 { grid-template-columns: 1fr; }
+}
+
+/* --- AJOUTS CHIC STYLE APPLICATION MOBILE (inspiré de la vidéo) --- */
+
+@media (max-width: 768px) {
+  body {
+    padding-bottom: 75px;
+  }
+}
+
+/* Grille des actions rapides (Recharger, Retirer, VIP, etc.) */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin-top: 5px;
+}
+
+.quick-action-item {
+  background: rgba(7, 9, 19, 0.7);
+  border: 1px solid rgba(245, 158, 11, 0.15);
+  border-radius: 12px;
+  padding: 12px 5px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  color: #f1f5f9;
+  font-size: 11px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.quick-action-item i {
+  font-size: 18px;
+  color: #f59e0b;
+}
+
+.quick-action-item:active {
+  transform: scale(0.95);
+  background: rgba(245, 158, 11, 0.2);
+}
+
+/* Barre de Navigation Inférieure (Style App Mobile) */
+.bottom-nav-bar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 65px;
+  background: rgba(11, 15, 26, 0.95);
+  backdrop-filter: blur(15px);
+  border-top: 1px solid rgba(245, 158, 11, 0.2);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  z-index: 1000;
+  box-shadow: 0 -5px 20px rgba(0, 0, 0, 0.5);
+}
+
+.nav-bar-item {
+  background: transparent;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  color: #94a3b8;
+  font-size: 10px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.nav-bar-item i {
+  font-size: 18px;
+}
+
+.nav-bar-item.active, .nav-bar-item:hover {
+  color: #f59e0b;
+}
+
+/* Badges VIP et Paliers */
+.vip-tier-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(15, 22, 41, 0.8));
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 12px;
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+/* UTILITAIRES & BOUTONS */
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
-.flex-col { justify-content: space-between; }
 .text-green { color: #10b981 !important; }
 .text-gold { color: #f59e0b !important; }
 .text-tiny { font-size: 10px; color: #64748b; text-align: center; }
-.text-small { font-size: 12px; color: #94a3b8; }
-.font-bold { font-weight: 700; color: #fff; }
-
-.badge-green {
-  background: rgba(16, 185, 129, 0.15);
-  color: #10b981;
-  font-size: 10px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  font-weight: 700;
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
 
 .badge-time {
   background: rgba(255, 255, 255, 0.05);
@@ -346,70 +398,6 @@ body {
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
-.alert-box {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.2);
-  color: #fcd34d;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 11px;
-  line-height: 1.4;
-}
-
-/* PLANNING & SIGNALS */
-.schedule-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.schedule-list li {
-  background: rgba(7, 9, 19, 0.6);
-  padding: 10px 12px;
-  border-radius: 8px;
-  display: flex;
-  justify-content: space-between;
-  font-size: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.schedule-list li.active-day {
-  background: rgba(245, 158, 11, 0.15);
-  border-color: rgba(245, 158, 11, 0.4);
-}
-
-.signal-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin-top: 15px;
-}
-
-.signal-box {
-  background: rgba(7, 9, 19, 0.7);
-  padding: 10px;
-  border-radius: 8px;
-  border: 1px solid rgba(255, 255, 255, 0.04);
-  text-align: center;
-}
-
-.signal-val {
-  font-size: 14px;
-  font-weight: 800;
-  margin-top: 4px;
-}
-
-.trade-action-box {
-  background: rgba(7, 9, 19, 0.8);
-  padding: 12px;
-  border-radius: 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
 .btn-trade {
   background: linear-gradient(135deg, #f59e0b, #d97706);
   color: #070913;
@@ -419,7 +407,19 @@ body {
   border-radius: 8px;
   cursor: pointer;
   font-size: 13px;
+  width: 100%;
   box-shadow: 0 4px 15px rgba(245, 158, 11, 0.3);
+  margin-top: 10px;
+}
+
+.alert-box {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 11px;
+  line-height: 1.4;
 }
 
 /* TABLEAUX */
@@ -445,4 +445,5 @@ td {
   padding: 10px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.04);
   color: #cbd5e1;
-}
+  }
+  
