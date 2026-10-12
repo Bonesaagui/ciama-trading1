@@ -13,10 +13,11 @@ let investedBalance = 0;
 let dailyGains = 0;
 let lockedWithdrawAddress = "";
 let hasTradedToday = false;
+let lastTradeDate = ""; 
 let historyRecords = [];
 let hasCopiedAddress = false;
 let usedDepositAmounts = [];
-let teamMembers = []; // Liste des filleuls
+let teamMembers = [];
 
 const assetsSchedule = {
   1: "BTC/USDT",
@@ -26,7 +27,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE AVEC DESTRUCTION ET REMONTÉE AU PARRAIN ---
+// --- INSCRIPTION SÉCURISÉE ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -58,6 +59,7 @@ async function handleRegister(e) {
     dailyGains: 0,
     lockedWithdrawAddress: "",
     hasTradedToday: false,
+    lastTradeDate: "",
     historyRecords: [],
     usedDepositAmounts: [],
     inviteCode,
@@ -65,7 +67,6 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
-  // Enregistrement du nouveau filleul chez le parrain s'il y a un code d'invitation
   if (inviteCodeInput) {
     addReferralToSponsor(inviteCodeInput, email);
   }
@@ -87,7 +88,6 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// Fonction pour associer le filleul au parrain dans le localStorage
 function addReferralToSponsor(sponsorCode, referralEmail) {
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
@@ -109,7 +109,7 @@ function addReferralToSponsor(sponsorCode, referralEmail) {
   }
 }
 
-// --- CONNEXION AVEC CHARGEMENT DE L'ÉQUIPE ---
+// --- CONNEXION ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -163,6 +163,7 @@ async function handleLogin(e) {
           dailyGains: data.daily_gains || 0,
           lockedWithdrawAddress: data.withdraw_address || "",
           hasTradedToday: false,
+          lastTradeDate: "",
           historyRecords: [],
           usedDepositAmounts: [],
           inviteCode: data.invite_code || "CIAMA100",
@@ -183,10 +184,19 @@ async function handleLogin(e) {
 }
 
 function loadUserDataFromMemory(data) {
-  investedBalance = data.investedBalance || 0;
-  dailyGains = data.dailyGains || 0;
+  investedBalance = Number(data.investedBalance) || 0;
+  dailyGains = Number(data.dailyGains) || 0;
   lockedWithdrawAddress = data.lockedWithdrawAddress || "";
-  hasTradedToday = data.hasTradedToday || false;
+  lastTradeDate = data.lastTradeDate || "";
+  
+  // Vérification de la date du jour pour réinitialiser l'état du trade
+  const todayStr = new Date().toISOString().split('T')[0];
+  if (lastTradeDate !== todayStr) {
+    hasTradedToday = false;
+  } else {
+    hasTradedToday = data.hasTradedToday || false;
+  }
+
   historyRecords = data.historyRecords || [];
   usedDepositAmounts = data.usedDepositAmounts || [];
   teamMembers = data.teamMembers || [];
@@ -201,6 +211,7 @@ function saveUserData() {
     dailyGains,
     lockedWithdrawAddress,
     hasTradedToday,
+    lastTradeDate,
     historyRecords,
     usedDepositAmounts,
     inviteCode: currentUser.inviteCode,
@@ -427,13 +438,19 @@ function submitWithdrawal() {
   }, 40000); 
 }
 
-// --- CONTRÔLE HORAIRE ET WEEK-END DU SIGNAL (LUN-VEN 18H-20H) ---
+// --- GESTION DE L'AFFICHAGE ET DE L'ÉTAT DU BOUTON DU SIGNAL ---
 function setupScheduleHighlight() {
   const now = new Date();
   const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
   const currentHour = now.getHours();
+  const todayStr = now.toISOString().split('T')[0];
 
-  const activeAsset = assetsSchedule[currentDay] || "BTC/USDT (Fermé)";
+  // Si on est un nouveau jour, on réinitialise l'autorisation de trade
+  if (lastTradeDate !== todayStr) {
+    hasTradedToday = false;
+  }
+
+  const activeAsset = assetsSchedule[currentDay] || "Fermé (Week-end)";
   document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
 
   let rateText = "1.5%";
@@ -447,11 +464,8 @@ function setupScheduleHighlight() {
     vipRateDisplay.innerText = rateText;
   }
 
-  // Vérification du week-end (Samedi = 6, Dimanche = 0)
   const isWeekend = (currentDay === 0 || currentDay === 6);
-  // Vérification du créneau horaire 18h - 20h
   const isSignalTime = (currentHour >= 18 && currentHour < 20);
-
   const btn = document.getElementById('executeTradeBtn');
 
   if (isWeekend) {
@@ -470,25 +484,27 @@ function setupScheduleHighlight() {
     btn.style.color = "#64748b";
     btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
   } else {
+    // Bouton jaune lumineux en attente du clic explicite de l'utilisateur
     btn.disabled = false;
     btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
     btn.style.color = "#070913";
+    btn.style.cursor = "pointer";
     btn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
   }
 }
 
+// --- EXÉCUTION UNIQUEMENT SUR CLIC DE L'UTILISATEUR ---
 function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
   const currentHour = now.getHours();
+  const todayStr = now.toISOString().split('T')[0];
 
-  // Bloquer le week-end
   if (currentDay === 0 || currentDay === 6) {
     alert("Le Bassin Minier est fermé pendant le week-end !");
     return;
   }
 
-  // Bloquer hors créneau 18h - 20h
   if (currentHour < 18 || currentHour >= 20) {
     alert("Le signal est accessible uniquement entre 18h00 et 20h00 !");
     return;
@@ -500,10 +516,11 @@ function executeDailySignal() {
   }
 
   if (investedBalance < 10) {
-    alert("Capital investi insuffisant. Un minimum de 10$ est requis.");
+    alert("Capital investi insuffisant. Un minimum de 10$ est requis pour valider le signal.");
     return;
   }
 
+  // Détermination du taux VIP selon l'investissement
   let rate = 0.015;
   if (investedBalance >= 50 && investedBalance <= 200) {
     rate = 0.02;
@@ -511,9 +528,11 @@ function executeDailySignal() {
     rate = 0.03;
   }
 
+  // Calcul du profit du jour et cumul correct avec les gains précédents
   const profit = investedBalance * rate;
-  dailyGains += profit;
+  dailyGains += profit; 
   hasTradedToday = true;
+  lastTradeDate = todayStr;
 
   updateBalances();
   setupScheduleHighlight();
@@ -529,7 +548,7 @@ function executeDailySignal() {
   renderHistory();
   saveUserData();
 
-  alert(`Position confirmée ! Gains journaliers ajoutés : +$${profit.toFixed(2)} (${(rate * 100)}%)`);
+  alert(`Position confirmée avec succès ! Gains journaliers ajoutés : +$${profit.toFixed(2)} (${(rate * 100)}%)`);
 }
 
 function renderHistory() {
@@ -551,4 +570,3 @@ function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
 }
-  
