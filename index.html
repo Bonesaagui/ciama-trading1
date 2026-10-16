@@ -86,7 +86,7 @@
           </div>
         </div>
 
-        <!-- Grille d'actions rapides (Chaque bouton ouvre sa propre fenêtre) -->
+        <!-- Grille d'actions rapides -->
         <div class="quick-actions-grid">
           <div class="quick-action-item" onclick="openModal('depositModal')">
             <i class="fa-solid fa-wallet"></i>
@@ -105,6 +105,71 @@
             <span>Activité</span>
           </div>
         </div>
+
+        <!-- SECTION MARCHÉ CRYPTO -->
+        <div style="margin-top: 20px;">
+          <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #f8fafc;">Crypto</h3>
+          
+          <!-- En-tête du tableau -->
+          <div style="display: flex; justify-content: space-between; font-size: 12px; color: #94a3b8; padding: 0 10px 8px 10px;">
+            <span>Name</span>
+            <div style="display: flex; gap: 40px;">
+              <span>Latest Price</span>
+              <span>Change</span>
+            </div>
+          </div>
+
+          <!-- LISTE DES CRYPTOS -->
+          <div style="display: flex; flex-direction: column; gap: 10px;">
+            
+            <!-- BTC -->
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div><b style="color: #ffffff; font-size: 14px;">BTC</b></div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffffff;">$82339.4348</span>
+                <span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; min-width: 65px; text-align: center;">1.59%</span>
+              </div>
+            </div>
+
+            <!-- ETH -->
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div><b style="color: #ffffff; font-size: 14px;">ETH</b></div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffffff;">$2475.817</span>
+                <span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; min-width: 65px; text-align: center;">4.59%</span>
+              </div>
+            </div>
+
+            <!-- SOL -->
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div><b style="color: #ffffff; font-size: 14px;">SOL</b></div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffffff;">$106.4654</span>
+                <span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; min-width: 65px; text-align: center;">4.15%</span>
+              </div>
+            </div>
+
+            <!-- BNB -->
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div><b style="color: #ffffff; font-size: 14px;">BNB</b></div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffffff;">$730.2396</span>
+                <span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; min-width: 65px; text-align: center;">1.26%</span>
+              </div>
+            </div>
+
+            <!-- XRP -->
+            <div style="background: rgba(255, 255, 255, 0.05); padding: 12px 15px; border-radius: 12px; display: flex; justify-content: space-between; align-items: center;">
+              <div><b style="color: #ffffff; font-size: 14px;">XRP</b></div>
+              <div style="display: flex; align-items: center; gap: 20px;">
+                <span style="font-size: 13px; font-weight: bold; color: #ffffff;">$1.3513</span>
+                <span style="background: #10b981; color: white; padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: bold; min-width: 65px; text-align: center;">3.09%</span>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
       </div>
 
       <!-- VUE 2 : VIP -->
@@ -335,5 +400,5 @@
 
   <script src="script.js"></script>
 </body>
-  </html>
-              
+          </html>
+          
