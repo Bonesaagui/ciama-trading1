@@ -67,7 +67,6 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
-  // Traitement du parrainage sur 3 niveaux (Niveau 1, Niveau 2, Niveau 3)
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
   }
@@ -89,11 +88,9 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-// Fonction de gestion du parrainage multiniveau
 function processMultiLevelReferral(sponsorCode, referralEmail) {
   const todayDate = new Date().toLocaleDateString('fr-FR');
 
-  // 1. Recherche du Parrain Niveau 1 (Direct)
   let level1Key = null;
   let level1Data = null;
 
@@ -116,7 +113,6 @@ function processMultiLevelReferral(sponsorCode, referralEmail) {
     level1Data.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
     localStorage.setItem(level1Key, JSON.stringify(level1Data));
 
-    // 2. Recherche du Parrain Niveau 2
     if (level1Data.referredBy) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -128,7 +124,6 @@ function processMultiLevelReferral(sponsorCode, referralEmail) {
               uData2.teamMembers.push({ email: referralEmail, level: "Niveau 2", date: todayDate });
               localStorage.setItem(key, JSON.stringify(uData2));
 
-              // 3. Recherche du Parrain Niveau 3
               if (uData2.referredBy) {
                 for (let j = 0; j < localStorage.length; j++) {
                   const key3 = localStorage.key(j);
@@ -338,7 +333,6 @@ function updateBalances() {
   saveUserData();
 }
 
-// Affichage dynamique de l'équipe (Niveau 1, Niveau 2, Niveau 3)
 function renderTeam() {
   const tbody = document.getElementById('teamMembersTable');
   const totalCountEl = document.getElementById('totalTeamMembers');
@@ -372,7 +366,11 @@ function renderTeam() {
   });
 }
 
+// --- GESTION ISOLÉE DE LA NAVIGATION ---
 function switchNavTab(tabName) {
+  // Fermer toutes les fenêtres surgissantes lors du changement d'onglet
+  closeAllModals();
+
   document.querySelectorAll('.app-view').forEach(el => el.classList.add('hidden'));
   document.querySelectorAll('.nav-bar-item').forEach(el => el.classList.remove('active'));
 
@@ -394,12 +392,28 @@ function switchNavTab(tabName) {
   }
 }
 
+// --- GESTION INDÉPENDANTE DES MODALES ---
 function openModal(modalId) {
-  document.getElementById(modalId).classList.remove('hidden');
+  closeAllModals();
+  const targetModal = document.getElementById(modalId);
+  if (targetModal) {
+    targetModal.classList.remove('hidden');
+  }
 }
 
 function closeModal(modalId) {
-  document.getElementById(modalId).classList.add('hidden');
+  const targetModal = document.getElementById(modalId);
+  if (targetModal) {
+    targetModal.classList.add('hidden');
+  }
+}
+
+function closeAllModals() {
+  const modals = ['depositModal', 'withdrawModal', 'activityModal'];
+  modals.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add('hidden');
+  });
 }
 
 function markAddressCopied() {
@@ -616,4 +630,5 @@ function renderHistory() {
 function copyInviteCode() {
   navigator.clipboard.writeText(currentUser.inviteCode);
   alert("Code d'invitation copié !");
-}
+      }
+  
