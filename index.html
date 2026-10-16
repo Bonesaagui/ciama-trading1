@@ -10,7 +10,7 @@
 </head>
 <body>
 
-  <!-- ÉCRAN D'AUTHENTIFICATION (INTACT) -->
+  <!-- ÉCRAN D'AUTHENTIFICATION -->
   <div id="authSection" class="auth-container">
     <div class="auth-card">
       <div class="auth-header">
@@ -100,26 +100,10 @@
             <i class="fa-solid fa-crown"></i>
             <span>VIP</span>
           </div>
-          <div class="quick-action-item">
+          <!-- Bouton Activité connecté à la Modal d'historique -->
+          <div class="quick-action-item" onclick="openModal('activityModal')">
             <i class="fa-solid fa-chart-line"></i>
             <span>Activité</span>
-          </div>
-        </div>
-
-        <!-- Historique des Transactions -->
-        <div class="card" style="margin-top: 15px;">
-          <h2>Historique récent</h2>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Montant</th>
-                  <th>Statut</th>
-                </tr>
-              </thead>
-              <tbody id="historyTable"></tbody>
-            </table>
           </div>
         </div>
       </div>
@@ -253,6 +237,28 @@
 
     </main>
 
+    <!-- MODAL ACTIVITÉ (HISTORIQUE DES TRANSACTIONS) -->
+    <div id="activityModal" class="modal-overlay hidden">
+      <div class="modal-card card">
+        <div class="flex-between">
+          <h2>Historique des Activités</h2>
+          <button onclick="closeModal('activityModal')" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="table-container" style="margin-top: 15px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Montant</th>
+                <th>Statut</th>
+              </tr>
+            </thead>
+            <tbody id="historyTable"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- MODAL RECHARGER -->
     <div id="depositModal" class="modal-overlay hidden">
       <div class="modal-card card">
@@ -334,4 +340,4 @@
   <script src="script.js"></script>
 </body>
   </html>
-              
+            
