@@ -86,7 +86,7 @@
           </div>
         </div>
 
-        <!-- Grille d'actions rapides -->
+        <!-- Grille d'actions rapides (Chaque bouton ouvre sa propre fenêtre) -->
         <div class="quick-actions-grid">
           <div class="quick-action-item" onclick="openModal('depositModal')">
             <i class="fa-solid fa-wallet"></i>
@@ -100,7 +100,6 @@
             <i class="fa-solid fa-crown"></i>
             <span>VIP</span>
           </div>
-          <!-- Bouton Activité connecté à la Modal d'historique -->
           <div class="quick-action-item" onclick="openModal('activityModal')">
             <i class="fa-solid fa-chart-line"></i>
             <span>Activité</span>
@@ -147,7 +146,7 @@
         </div>
       </div>
 
-      <!-- VUE 4 : ÉQUIPE (PARRAINAGE & MEMBRES COMPLÈTE) -->
+      <!-- VUE 4 : ÉQUIPE -->
       <div id="viewTeam" class="app-view hidden">
         <div class="card">
           <h2><i class="fa-solid fa-users text-gold"></i> Mon Équipe & Parrainage</h2>
@@ -160,7 +159,6 @@
             </div>
           </div>
 
-          <!-- Statistiques synthétiques -->
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 15px 0; text-align: center;">
             <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px;">
               <span style="font-size: 11px; color: #94a3b8;">Total Filleuls</span>
@@ -176,7 +174,6 @@
             </div>
           </div>
 
-          <!-- Commissions -->
           <div style="margin-top: 10px; background: rgba(245, 158, 11, 0.08); padding: 10px; border-radius: 8px;">
             <h3 style="font-size: 12px; margin-bottom: 6px; color: #f59e0b;">Taux de Commission :</h3>
             <div style="display: flex; justify-content: space-around; font-size: 12px;">
@@ -186,7 +183,6 @@
             </div>
           </div>
 
-          <!-- Liste dynamique des membres -->
           <div style="margin-top: 15px;">
             <h3 style="font-size: 13px; margin-bottom: 8px; color: #f59e0b;">Membres de votre équipe :</h3>
             <div class="table-container">
@@ -210,13 +206,12 @@
         </div>
       </div>
 
-      <!-- VUE 5 : MOI (PROFIL, TELEGRAM & AFFICHE PUBLICITAIRE) -->
+      <!-- VUE 5 : MOI -->
       <div id="viewProfile" class="app-view hidden">
         <div class="card" style="text-align: center; padding: 20px;">
           <i class="fa-solid fa-circle-user" style="font-size: 40px; color: #f59e0b; margin-bottom: 5px;"></i>
           <h3 id="profileEmail" style="font-size: 13px; margin-bottom: 15px;"></h3>
           
-          <!-- Affiche publicitaire CIAMA TRADING -->
           <div class="promo-banner" style="background: linear-gradient(135deg, #1e1b4b, #0f172a); border: 2px solid #f59e0b; border-radius: 14px; padding: 15px; margin-bottom: 15px; box-shadow: 0 0 15px rgba(245,158,11,0.3);">
             <div style="color: #f59e0b; font-weight: 900; font-size: 16px; letter-spacing: 1px; margin-bottom: 5px;">CIAMA TRADING VIP</div>
             <p style="font-size: 11px; color: #cbd5e1; margin-bottom: 10px;">L'Excellence du Signal & Copy Trading Crypto</p>
@@ -225,7 +220,6 @@
             </div>
           </div>
 
-          <!-- BOUTON TELEGRAM AUTOMATIQUE -->
           <a href="https://t.me/Ciamatrading" target="_blank" style="display: flex; align-items: center; justify-content: center; gap: 10px; background: #0088cc; color: white; text-decoration: none; padding: 12px; border-radius: 10px; font-weight: bold; margin-bottom: 15px; font-size: 13px;">
             <i class="fa-brands fa-telegram" style="font-size: 20px;"></i>
             Rejoindre notre canal Telegram
@@ -237,7 +231,9 @@
 
     </main>
 
-    <!-- MODAL ACTIVITÉ (HISTORIQUE DES TRANSACTIONS) -->
+    <!-- FENÊTRES SURGISSANTES (MODALES ISOLÉES) -->
+
+    <!-- MODAL ACTIVITÉ -->
     <div id="activityModal" class="modal-overlay hidden">
       <div class="modal-card card">
         <div class="flex-between">
@@ -340,4 +336,4 @@
   <script src="script.js"></script>
 </body>
   </html>
-            
+              
