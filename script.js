@@ -27,7 +27,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE ---
+// --- INSCRIPTION AVEC SYSTÈME DE PARRAINAGE MULTI-NIVEAUX (N1, N2, N3) ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -67,8 +67,9 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
+  // Traitement du parrainage sur 3 niveaux (Niveau 1, Niveau 2, Niveau 3)
   if (inviteCodeInput) {
-    addReferralToSponsor(inviteCodeInput, email);
+    processMultiLevelReferral(inviteCodeInput, email);
   }
 
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
@@ -88,23 +89,67 @@ async function handleRegister(e) {
   initDashboard();
 }
 
-function addReferralToSponsor(sponsorCode, referralEmail) {
+// Fonction de gestion du parrainage multiniveau
+function processMultiLevelReferral(sponsorCode, referralEmail) {
+  const todayDate = new Date().toLocaleDateString('fr-FR');
+
+  // 1. Recherche du Parrain Niveau 1 (Direct)
+  let level1Key = null;
+  let level1Data = null;
+
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key.startsWith('ciama_user_')) {
       try {
         const uData = JSON.parse(localStorage.getItem(key));
         if (uData.inviteCode === sponsorCode) {
-          if (!uData.teamMembers) uData.teamMembers = [];
-          uData.teamMembers.push({
-            email: referralEmail,
-            level: "Niveau 1",
-            date: new Date().toLocaleDateString('fr-FR')
-          });
-          localStorage.setItem(key, JSON.stringify(uData));
+          level1Key = key;
+          level1Data = uData;
           break;
         }
       } catch (err) {}
+    }
+  }
+
+  if (level1Data) {
+    if (!level1Data.teamMembers) level1Data.teamMembers = [];
+    level1Data.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
+    localStorage.setItem(level1Key, JSON.stringify(level1Data));
+
+    // 2. Recherche du Parrain Niveau 2
+    if (level1Data.referredBy) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('ciama_user_')) {
+          try {
+            const uData2 = JSON.parse(localStorage.getItem(key));
+            if (uData2.inviteCode === level1Data.referredBy) {
+              if (!uData2.teamMembers) uData2.teamMembers = [];
+              uData2.teamMembers.push({ email: referralEmail, level: "Niveau 2", date: todayDate });
+              localStorage.setItem(key, JSON.stringify(uData2));
+
+              // 3. Recherche du Parrain Niveau 3
+              if (uData2.referredBy) {
+                for (let j = 0; j < localStorage.length; j++) {
+                  const key3 = localStorage.key(j);
+                  if (key3.startsWith('ciama_user_')) {
+                    try {
+                      const uData3 = JSON.parse(localStorage.getItem(key3));
+                      if (uData3.inviteCode === uData2.referredBy) {
+                        if (!uData3.teamMembers) uData3.teamMembers = [];
+                        uData3.teamMembers.push({ email: referralEmail, level: "Niveau 3", date: todayDate });
+                        localStorage.setItem(key3, JSON.stringify(uData3));
+                        break;
+                      }
+                    } catch (e) {}
+                  }
+                }
+              }
+              break;
+            }
+          } catch (err) {}
+        }
+      }
     }
   }
 }
@@ -189,7 +234,6 @@ function loadUserDataFromMemory(data) {
   lockedWithdrawAddress = data.lockedWithdrawAddress || "";
   lastTradeDate = data.lastTradeDate || "";
   
-  // Vérification de la date du jour pour réinitialiser l'état du trade
   const todayStr = new Date().toISOString().split('T')[0];
   if (lastTradeDate !== todayStr) {
     hasTradedToday = false;
@@ -294,16 +338,23 @@ function updateBalances() {
   saveUserData();
 }
 
+// Affichage dynamique de l'équipe (Niveau 1, Niveau 2, Niveau 3)
 function renderTeam() {
   const tbody = document.getElementById('teamMembersTable');
   const totalCountEl = document.getElementById('totalTeamMembers');
   const l1CountEl = document.getElementById('teamL1Count');
+  const l2l3CountEl = document.getElementById('teamL2L3Count');
 
   if (!tbody) return;
 
   tbody.innerHTML = "";
-  totalCountEl.innerText = teamMembers.length;
-  l1CountEl.innerText = teamMembers.length;
+  
+  const l1List = teamMembers.filter(m => m.level === "Niveau 1");
+  const l2l3List = teamMembers.filter(m => m.level === "Niveau 2" || m.level === "Niveau 3");
+
+  if (totalCountEl) totalCountEl.innerText = teamMembers.length;
+  if (l1CountEl) l1CountEl.innerText = l1List.length;
+  if (l2l3CountEl) l2l3CountEl.innerText = l2l3List.length;
 
   if (teamMembers.length === 0) {
     tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Aucun filleul pour le moment</td></tr>`;
@@ -314,7 +365,7 @@ function renderTeam() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><b>${m.email}</b></td>
-      <td><span class="text-green" style="font-weight:bold;">${m.level}</span></td>
+      <td><span class="${m.level === 'Niveau 1' ? 'text-green' : 'text-gold'}" style="font-weight:bold;">${m.level}</span></td>
       <td style="font-size: 11px; color: #cbd5e1;">${m.date}</td>
     `;
     tbody.appendChild(tr);
@@ -441,11 +492,10 @@ function submitWithdrawal() {
 // --- GESTION DE L'AFFICHAGE ET DE L'ÉTAT DU BOUTON DU SIGNAL ---
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
+  const currentDay = now.getDay();
   const currentHour = now.getHours();
   const todayStr = now.toISOString().split('T')[0];
 
-  // Si on est un nouveau jour, on réinitialise l'autorisation de trade
   if (lastTradeDate !== todayStr) {
     hasTradedToday = false;
   }
@@ -484,7 +534,6 @@ function setupScheduleHighlight() {
     btn.style.color = "#64748b";
     btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
   } else {
-    // Bouton jaune lumineux en attente du clic explicite de l'utilisateur
     btn.disabled = false;
     btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
     btn.style.color = "#070913";
@@ -493,7 +542,7 @@ function setupScheduleHighlight() {
   }
 }
 
-// --- EXÉCUTION UNIQUEMENT SUR CLIC DE L'UTILISATEUR ---
+// --- EXÉCUTION DU SIGNAL PAR CLIC D'UTILISATEUR ---
 function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -520,7 +569,6 @@ function executeDailySignal() {
     return;
   }
 
-  // Détermination du taux VIP selon l'investissement
   let rate = 0.015;
   if (investedBalance >= 50 && investedBalance <= 200) {
     rate = 0.02;
@@ -528,7 +576,6 @@ function executeDailySignal() {
     rate = 0.03;
   }
 
-  // Calcul du profit du jour et cumul correct avec les gains précédents
   const profit = investedBalance * rate;
   dailyGains += profit; 
   hasTradedToday = true;
