@@ -37,10 +37,10 @@
           <label>Confirmer mot de passe</label>
           <input type="password" id="regConfirmPassword" required placeholder="••••••••">
         </div>
-        <!-- CODE D'INVITATION OBLIGATOIRE -->
+        <!-- CODE / LIEN D'INVITATION OBLIGATOIRE -->
         <div class="input-group">
-          <label>Code d'invitation (Obligatoire)</label>
-          <input type="text" id="regInviteCode" required placeholder="Ex: CIAMA55">
+          <label>Code ou Lien d'invitation (Obligatoire)</label>
+          <input type="text" id="regInviteCode" required placeholder="Ex: CIAMA8936 ou collé depuis un lien">
         </div>
         <button type="submit" class="btn-primary">S'inscrire</button>
       </form>
@@ -208,16 +208,16 @@
         </div>
       </div>
 
-      <!-- VUE 4 : ÉQUIPE -->
+      <!-- VUE 4 : ÉQUIPE (LIEN D'INVITATION COMPLET) -->
       <div id="viewTeam" class="app-view hidden">
         <div class="card">
           <h2><i class="fa-solid fa-users text-gold"></i> Mon Équipe & Parrainage</h2>
           
           <div class="input-group" style="margin-top: 10px;">
-            <label>Votre Code d'invitation</label>
+            <label>Votre Lien d'invitation (Parrainage)</label>
             <div class="copy-box">
               <input id="inviteCodeDisplay" readonly type="text">
-              <button onclick="copyInviteCode()" class="btn-sm">Copier</button>
+              <button onclick="copyInviteCode()" class="btn-sm">Copier le lien</button>
             </div>
           </div>
 
@@ -397,5 +397,5 @@
 
   <script src="script.js"></script>
 </body>
-        </html>
-                  
+  </html>
+              
