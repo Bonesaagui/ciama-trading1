@@ -19,8 +19,8 @@
       </div>
 
       <div class="auth-tabs">
-        <button id="tabRegisterBtn" onclick="switchAuthTab('register')" class="active-tab">S'inscrire</button>
-        <button id="tabLoginBtn" onclick="switchAuthTab('login')">Se connecter</button>
+        <button type="button" id="tabRegisterBtn" onclick="switchAuthTab('register')" class="active-tab">S'inscrire</button>
+        <button type="button" id="tabLoginBtn" onclick="switchAuthTab('login')">Se connecter</button>
       </div>
 
       <!-- Inscription -->
@@ -37,10 +37,10 @@
           <label>Confirmer mot de passe</label>
           <input type="password" id="regConfirmPassword" required placeholder="••••••••">
         </div>
-        <!-- CODE / LIEN D'INVITATION OBLIGATOIRE -->
+        <!-- CODE D'INVITATION OBLIGATOIRE -->
         <div class="input-group">
           <label>Code ou Lien d'invitation (Obligatoire)</label>
-          <input type="text" id="regInviteCode" required placeholder="Ex: CIAMA8936 ou collé depuis un lien">
+          <input type="text" id="regInviteCode" required placeholder="Ex: CIAMA8936 ou lien complet">
         </div>
         <button type="submit" class="btn-primary">S'inscrire</button>
       </form>
@@ -208,13 +208,23 @@
         </div>
       </div>
 
-      <!-- VUE 4 : ÉQUIPE (LIEN D'INVITATION COMPLET) -->
+      <!-- VUE 4 : ÉQUIPE -->
       <div id="viewTeam" class="app-view hidden">
         <div class="card">
           <h2><i class="fa-solid fa-users text-gold"></i> Mon Équipe & Parrainage</h2>
           
+          <!-- Code d'invitation seul -->
           <div class="input-group" style="margin-top: 10px;">
-            <label>Votre Lien d'invitation (Parrainage)</label>
+            <label>Votre Code d'invitation</label>
+            <div class="copy-box">
+              <input id="inviteCodeOnlyDisplay" readonly type="text">
+              <button onclick="copyInviteCodeOnly()" class="btn-sm">Copier le code</button>
+            </div>
+          </div>
+
+          <!-- Lien complet d'invitation -->
+          <div class="input-group" style="margin-top: 10px;">
+            <label>Votre Lien d'Invitation (Complet)</label>
             <div class="copy-box">
               <input id="inviteCodeDisplay" readonly type="text">
               <button onclick="copyInviteCode()" class="btn-sm">Copier le lien</button>
@@ -397,5 +407,4 @@
 
   <script src="script.js"></script>
 </body>
-  </html>
-              
+</html>
