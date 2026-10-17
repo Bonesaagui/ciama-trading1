@@ -7,19 +7,6 @@ if (typeof supabase !== 'undefined') {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
-// --- DÉTECTION AUTOMATIQUE DU CODE D'INVITATION DEPUIS L'URL ---
-window.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const inviteParam = urlParams.get('invite');
-  
-  if (inviteParam) {
-    const inviteInput = document.getElementById('regInviteCode');
-    if (inviteInput) {
-      inviteInput.value = inviteParam.trim().toUpperCase();
-    }
-  }
-});
-
 // --- ÉTAT DU COMPTE ---
 let currentUser = null;
 let investedBalance = 0;
@@ -46,21 +33,10 @@ async function handleRegister(e) {
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const pass = document.getElementById('regPassword').value;
   const confirmPass = document.getElementById('regConfirmPassword').value;
-  let inviteCodeInput = document.getElementById('regInviteCode').value.trim();
-
-  // Extraction propre du code si l'utilisateur a collé un lien entier
-  if (inviteCodeInput.includes('invite=')) {
-    inviteCodeInput = inviteCodeInput.split('invite=')[1].split('&')[0];
-  }
-  inviteCodeInput = inviteCodeInput.toUpperCase();
+  const inviteCodeInput = document.getElementById('regInviteCode').value.trim().toUpperCase();
 
   if (!email || !pass) {
     alert("Veuillez remplir tous les champs !");
-    return;
-  }
-
-  if (!inviteCodeInput) {
-    alert("Le code ou lien d'invitation est obligatoire pour s'inscrire !");
     return;
   }
 
@@ -327,10 +303,8 @@ function initDashboard() {
   document.getElementById('userEmailDisplay').innerText = displayEmail;
   document.getElementById('profileEmail').innerText = displayEmail;
   
-  // AFFICHER LE LIEN COMPLET D'INVITATION
   if (document.getElementById('inviteCodeDisplay')) {
-    const fullInviteLink = `${window.location.origin}/?invite=${currentUser.inviteCode || ""}`;
-    document.getElementById('inviteCodeDisplay').value = fullInviteLink;
+    document.getElementById('inviteCodeDisplay').value = currentUser.inviteCode || "";
   }
 
   const withdrawInput = document.getElementById('withdrawAddress');
@@ -394,6 +368,7 @@ function renderTeam() {
 
 // --- GESTION ISOLÉE DE LA NAVIGATION ---
 function switchNavTab(tabName) {
+  // Fermer toutes les fenêtres surgissantes lors du changement d'onglet
   closeAllModals();
 
   document.querySelectorAll('.app-view').forEach(el => el.classList.add('hidden'));
@@ -642,4 +617,17 @@ function renderHistory() {
   if (!tbody) return;
   tbody.innerHTML = "";
   historyRecords.forEach(rec => {
-    const tr = document
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><b>${rec.type}</b></td>
+      <td><b>${rec.amount}</b></td>
+      <td class="${rec.statusClass}" style="font-weight:bold;">${rec.status}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function copyInviteCode() {
+  navigator.clipboard.writeText(currentUser.inviteCode);
+  alert("Code d'invitation copié !");
+                                            }
