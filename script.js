@@ -7,6 +7,20 @@ if (typeof supabase !== 'undefined') {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
 
+// --- DÉTECTION AUTOMATIQUE DU CODE D'INVITATION DEPUIS L'URL ---
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const inviteParam = urlParams.get('invite');
+  
+  if (inviteParam) {
+    const inviteInput = document.getElementById('regInviteCode');
+    if (inviteInput) {
+      inviteInput.value = inviteParam.trim().toUpperCase();
+    }
+  }
+  switchAuthTab('register');
+});
+
 // --- ÉTAT DU COMPTE ---
 let currentUser = null;
 let investedBalance = 0;
@@ -27,13 +41,18 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION AVEC SYSTÈME DE PARRAINAGE MULTI-NIVEAUX (N1, N2, N3) ---
+// --- INSCRIPTION AVEC CODE FONDATEUR OPTIONNEL ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
   const pass = document.getElementById('regPassword').value;
   const confirmPass = document.getElementById('regConfirmPassword').value;
-  const inviteCodeInput = document.getElementById('regInviteCode').value.trim().toUpperCase();
+  let inviteCodeInput = document.getElementById('regInviteCode').value.trim();
+
+  if (inviteCodeInput.includes('invite=')) {
+    inviteCodeInput = inviteCodeInput.split('invite=')[1].split('&')[0];
+  }
+  inviteCodeInput = inviteCodeInput.toUpperCase();
 
   if (!email || !pass) {
     alert("Veuillez remplir tous les champs !");
@@ -51,6 +70,35 @@ async function handleRegister(e) {
     return;
   }
 
+  // --- GESTION DU PREMIER COMPTE (FONDATEUR / MASTER) ---
+  const MASTER_FOUNDER_CODE = "CIAMA001";
+  let sponsorFound = false;
+
+  // Si c'est le code fondateur CIAMA001 ou si le champ est vide pour le tout premier inscrit
+  if (inviteCodeInput === MASTER_FOUNDER_CODE || inviteCodeInput === "" || localStorage.length === 0) {
+    sponsorFound = true;
+    inviteCodeInput = null; // Pas de parrain pour le premier administrateur
+  } else {
+    // Vérification obligatoire du parrain pour tous les utilisateurs suivants
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key.startsWith('ciama_user_')) {
+        try {
+          const uData = JSON.parse(localStorage.getItem(key));
+          if (uData.inviteCode === inviteCodeInput) {
+            sponsorFound = true;
+            break;
+          }
+        } catch (err) {}
+      }
+    }
+  }
+
+  if (!sponsorFound) {
+    alert("Code d'invitation invalide ou inconnu ! Veuillez utiliser le code de votre parrain.");
+    return;
+  }
+
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
   const userData = {
     email,
@@ -63,15 +111,15 @@ async function handleRegister(e) {
     historyRecords: [],
     usedDepositAmounts: [],
     inviteCode,
-    referredBy: inviteCodeInput || null,
+    referredBy: inviteCodeInput,
     teamMembers: []
   };
+
+  localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
   }
-
-  localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
   if (supabaseClient) {
     try {
@@ -86,11 +134,11 @@ async function handleRegister(e) {
   currentUser = userData;
   loadUserDataFromMemory(userData);
   initDashboard();
+  alert("Inscription réussie avec succès ! Bienvenue sur CIAMA TRADING.");
 }
 
 function processMultiLevelReferral(sponsorCode, referralEmail) {
   const todayDate = new Date().toLocaleDateString('fr-FR');
-
   let level1Key = null;
   let level1Data = null;
 
@@ -110,39 +158,61 @@ function processMultiLevelReferral(sponsorCode, referralEmail) {
 
   if (level1Data) {
     if (!level1Data.teamMembers) level1Data.teamMembers = [];
-    level1Data.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
-    localStorage.setItem(level1Key, JSON.stringify(level1Data));
+    if (!level1Data.teamMembers.some(m => m.email === referralEmail)) {
+      level1Data.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
+      localStorage.setItem(level1Key, JSON.stringify(level1Data));
+    }
 
     if (level1Data.referredBy) {
+      let level2Key = null;
+      let level2Data = null;
+
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('ciama_user_')) {
           try {
             const uData2 = JSON.parse(localStorage.getItem(key));
             if (uData2.inviteCode === level1Data.referredBy) {
-              if (!uData2.teamMembers) uData2.teamMembers = [];
-              uData2.teamMembers.push({ email: referralEmail, level: "Niveau 2", date: todayDate });
-              localStorage.setItem(key, JSON.stringify(uData2));
-
-              if (uData2.referredBy) {
-                for (let j = 0; j < localStorage.length; j++) {
-                  const key3 = localStorage.key(j);
-                  if (key3.startsWith('ciama_user_')) {
-                    try {
-                      const uData3 = JSON.parse(localStorage.getItem(key3));
-                      if (uData3.inviteCode === uData2.referredBy) {
-                        if (!uData3.teamMembers) uData3.teamMembers = [];
-                        uData3.teamMembers.push({ email: referralEmail, level: "Niveau 3", date: todayDate });
-                        localStorage.setItem(key3, JSON.stringify(uData3));
-                        break;
-                      }
-                    } catch (e) {}
-                  }
-                }
-              }
+              level2Key = key;
+              level2Data = uData2;
               break;
             }
           } catch (err) {}
+        }
+      }
+
+      if (level2Data) {
+        if (!level2Data.teamMembers) level2Data.teamMembers = [];
+        if (!level2Data.teamMembers.some(m => m.email === referralEmail)) {
+          level2Data.teamMembers.push({ email: referralEmail, level: "Niveau 2", date: todayDate });
+          localStorage.setItem(level2Key, JSON.stringify(level2Data));
+        }
+
+        if (level2Data.referredBy) {
+          let level3Key = null;
+          let level3Data = null;
+
+          for (let j = 0; j < localStorage.length; j++) {
+            const key3 = localStorage.key(j);
+            if (key3.startsWith('ciama_user_')) {
+              try {
+                const uData3 = JSON.parse(localStorage.getItem(key3));
+                if (uData3.inviteCode === level2Data.referredBy) {
+                  level3Key = key3;
+                  level3Data = uData3;
+                  break;
+                }
+              } catch (e) {}
+            }
+          }
+
+          if (level3Data) {
+            if (!level3Data.teamMembers) level3Data.teamMembers = [];
+            if (!level3Data.teamMembers.some(m => m.email === referralEmail)) {
+              level3Data.teamMembers.push({ email: referralEmail, level: "Niveau 3", date: todayDate });
+              localStorage.setItem(level3Key, JSON.stringify(level3Data));
+            }
+          }
         }
       }
     }
@@ -164,17 +234,13 @@ async function handleLogin(e) {
 
   if (savedData) {
     const data = JSON.parse(savedData);
-    
     if (data.password && data.password !== pass) {
       alert("Mot de passe incorrect ! Veuillez réessayer.");
       return;
     }
-
     if (!data.password) {
       data.password = pass;
     }
-
-    data.email = email;
     currentUser = data;
     loadUserDataFromMemory(data);
     saveUserData();
@@ -207,6 +273,7 @@ async function handleLogin(e) {
           historyRecords: [],
           usedDepositAmounts: [],
           inviteCode: data.invite_code || "CIAMA100",
+          referredBy: data.referred_by || null,
           teamMembers: []
         };
 
@@ -254,6 +321,7 @@ function saveUserData() {
     historyRecords,
     usedDepositAmounts,
     inviteCode: currentUser.inviteCode,
+    referredBy: currentUser.referredBy || null,
     teamMembers
   };
   
@@ -303,8 +371,21 @@ function initDashboard() {
   document.getElementById('userEmailDisplay').innerText = displayEmail;
   document.getElementById('profileEmail').innerText = displayEmail;
   
+  if (currentUser && currentUser.email) {
+    const latestData = localStorage.getItem('ciama_user_' + currentUser.email);
+    if (latestData) {
+      currentUser = JSON.parse(latestData);
+      loadUserDataFromMemory(currentUser);
+    }
+  }
+
+  if (document.getElementById('inviteCodeOnlyDisplay')) {
+    document.getElementById('inviteCodeOnlyDisplay').value = currentUser.inviteCode || "";
+  }
+
   if (document.getElementById('inviteCodeDisplay')) {
-    document.getElementById('inviteCodeDisplay').value = currentUser.inviteCode || "";
+    const fullInviteLink = `${window.location.origin}${window.location.pathname}?invite=${currentUser.inviteCode || ""}`;
+    document.getElementById('inviteCodeDisplay').value = fullInviteLink;
   }
 
   const withdrawInput = document.getElementById('withdrawAddress');
@@ -366,9 +447,7 @@ function renderTeam() {
   });
 }
 
-// --- GESTION ISOLÉE DE LA NAVIGATION ---
 function switchNavTab(tabName) {
-  // Fermer toutes les fenêtres surgissantes lors du changement d'onglet
   closeAllModals();
 
   document.querySelectorAll('.app-view').forEach(el => el.classList.add('hidden'));
@@ -384,6 +463,14 @@ function switchNavTab(tabName) {
     document.getElementById('viewMining').classList.remove('hidden');
     document.getElementById('navMining').classList.add('active');
   } else if (tabName === 'team') {
+    if (currentUser && currentUser.email) {
+      const latestData = localStorage.getItem('ciama_user_' + currentUser.email);
+      if (latestData) {
+        currentUser = JSON.parse(latestData);
+        teamMembers = currentUser.teamMembers || [];
+      }
+      renderTeam();
+    }
     document.getElementById('viewTeam').classList.remove('hidden');
     document.getElementById('navTeam').classList.add('active');
   } else if (tabName === 'profile') {
@@ -392,7 +479,6 @@ function switchNavTab(tabName) {
   }
 }
 
-// --- GESTION INDÉPENDANTE DES MODALES ---
 function openModal(modalId) {
   closeAllModals();
   const targetModal = document.getElementById(modalId);
@@ -503,7 +589,6 @@ function submitWithdrawal() {
   }, 40000); 
 }
 
-// --- GESTION DE L'AFFICHAGE ET DE L'ÉTAT DU BOUTON DU SIGNAL ---
 function setupScheduleHighlight() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -517,7 +602,7 @@ function setupScheduleHighlight() {
   const activeAsset = assetsSchedule[currentDay] || "Fermé (Week-end)";
   document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
 
-  let rateText = "1.5%";
+    let rateText = "1.5%";
   if (investedBalance >= 50 && investedBalance <= 200) {
     rateText = "2%";
   } else if (investedBalance >= 300) {
@@ -532,102 +617,28 @@ function setupScheduleHighlight() {
   const isSignalTime = (currentHour >= 18 && currentHour < 20);
   const btn = document.getElementById('executeTradeBtn');
 
-  if (isWeekend) {
-    btn.disabled = true;
-    btn.style.background = "#1e293b";
-    btn.style.color = "#ef4444";
-    btn.innerText = "SIGNAL FERMÉ LE WEEK-END";
-  } else if (hasTradedToday) {
-    btn.disabled = true;
-    btn.style.background = "#334155";
-    btn.style.color = "#94a3b8";
-    btn.innerText = "SIGNAL DÉJÀ EXÉCUTÉ AUJOURD'HUI";
-  } else if (!isSignalTime) {
-    btn.disabled = true;
-    btn.style.background = "#1e293b";
-    btn.style.color = "#64748b";
-    btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
-  } else {
-    btn.disabled = false;
-    btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
-    btn.style.color = "#070913";
-    btn.style.cursor = "pointer";
-    btn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
+  if (btn) {
+    if (isWeekend) {
+      btn.disabled = true;
+      btn.style.background = "#1e293b";
+      btn.style.color = "#ef4444";
+      btn.innerText = "SIGNAL FERMÉ LE WEEK-END";
+    } else if (hasTradedToday) {
+      btn.disabled = true;
+      btn.style.background = "#334155";
+      btn.style.color = "#94a3b8";
+      btn.innerText = "SIGNAL DÉJÀ EXÉCUTÉ AUJOURD'HUI";
+    } else if (!isSignalTime) {
+      btn.disabled = true;
+      btn.style.background = "#1e293b";
+      btn.style.color = "#64748b";
+      btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
+    } else {
+      btn.disabled = false;
+      btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
+      btn.style.color = "#070913";
+      btn.style.cursor = "pointer";
+      btn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
+    }
   }
 }
-
-// --- EXÉCUTION DU SIGNAL PAR CLIC D'UTILISATEUR ---
-function executeDailySignal() {
-  const now = new Date();
-  const currentDay = now.getDay();
-  const currentHour = now.getHours();
-  const todayStr = now.toISOString().split('T')[0];
-
-  if (currentDay === 0 || currentDay === 6) {
-    alert("Le Bassin Minier est fermé pendant le week-end !");
-    return;
-  }
-
-  if (currentHour < 18 || currentHour >= 20) {
-    alert("Le signal est accessible uniquement entre 18h00 et 20h00 !");
-    return;
-  }
-
-  if (hasTradedToday) {
-    alert("Vous avez déjà exécuté votre trade aujourd'hui ! Revenez demain à 18h00.");
-    return;
-  }
-
-  if (investedBalance < 10) {
-    alert("Capital investi insuffisant. Un minimum de 10$ est requis pour valider le signal.");
-    return;
-  }
-
-  let rate = 0.015;
-  if (investedBalance >= 50 && investedBalance <= 200) {
-    rate = 0.02;
-  } else if (investedBalance >= 300) {
-    rate = 0.03;
-  }
-
-  const profit = investedBalance * rate;
-  dailyGains += profit; 
-  hasTradedToday = true;
-  lastTradeDate = todayStr;
-
-  updateBalances();
-  setupScheduleHighlight();
-
-  const record = { 
-    id: Date.now(), 
-    type: "Signal Minier", 
-    amount: `+$${profit.toFixed(2)}`, 
-    status: "Exécuté", 
-    statusClass: "text-green" 
-  };
-  historyRecords.unshift(record);
-  renderHistory();
-  saveUserData();
-
-  alert(`Position confirmée avec succès ! Gains journaliers ajoutés : +$${profit.toFixed(2)} (${(rate * 100)}%)`);
-}
-
-function renderHistory() {
-  const tbody = document.getElementById('historyTable');
-  if (!tbody) return;
-  tbody.innerHTML = "";
-  historyRecords.forEach(rec => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><b>${rec.type}</b></td>
-      <td><b>${rec.amount}</b></td>
-      <td class="${rec.statusClass}" style="font-weight:bold;">${rec.status}</td>
-    `;
-    tbody.appendChild(tr);
-  });
-}
-
-function copyInviteCode() {
-  navigator.clipboard.writeText(currentUser.inviteCode);
-  alert("Code d'invitation copié !");
-                                            }
