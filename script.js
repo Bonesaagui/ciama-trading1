@@ -41,7 +41,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION AVEC VÉRIFICATION UNIVERSELLE DU PARRAIN ---
+// --- INSCRIPTION AVEC VÉRIFICATION SUPABASE STRICTE ET UNIVERSELLE ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -64,25 +64,18 @@ async function handleRegister(e) {
     return;
   }
 
-  const existingUser = localStorage.getItem('ciama_user_' + email);
-  if (existingUser) {
-    alert("Un compte existe déjà avec cette adresse email ! Veuillez vous connecter.");
-    return;
-  }
-
-  // --- RECHERCHE DU PARRAIN (ADMIN OU UTILISATEUR GLOBALE SUR SUPABASE) ---
+  // --- VÉRIFICATION DU PARRAIN (GLOBALEMENT DANS SUPABASE) ---
   const MASTER_FOUNDER_CODE = "CIAMA001";
   let sponsorFound = false;
 
   if (inviteCodeInput === MASTER_FOUNDER_CODE || inviteCodeInput === "") {
-    // Code administrateur master
     sponsorFound = true;
     if (inviteCodeInput === MASTER_FOUNDER_CODE) inviteCodeInput = "CIAMA001";
     else inviteCodeInput = null;
   } else {
-    // 1. Vérification réseau universelle dans Supabase
     if (supabaseClient) {
       try {
+        // On cherche le code d'invitation directement dans la base de données Supabase
         const { data, error } = await supabaseClient
           .from('users')
           .select('invite_code')
@@ -92,11 +85,11 @@ async function handleRegister(e) {
           sponsorFound = true;
         }
       } catch (err) {
-        console.log("Erreur de vérification cloud du parrain :", err);
+        console.log("Erreur de connexion à Supabase pour le parrain :", err);
       }
     }
 
-    // 2. Vérification de secours dans le localStorage local
+    // Fallback de secours local si Supabase ne répond pas
     if (!sponsorFound) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -114,12 +107,39 @@ async function handleRegister(e) {
   }
 
   if (!sponsorFound) {
-    alert("Code d'invitation invalide ou inconnu ! Veuillez utiliser le code de votre parrain.");
+    alert("Code d'invitation invalide ou inconnu ! Ce code n'existe pas sur la plateforme.");
     return;
   }
 
-  // Génération d'un code unique pour le nouvel inscrit
+  // Génération du nouveau code unique de l'utilisateur
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
+
+  // --- SAUVEGARDE OBLIGATOIRE DANS SUPABASE EN PREMIER ---
+  if (supabaseClient) {
+    try {
+      const { error: insertError } = await supabaseClient.from('users').insert([
+        { 
+          email: email, 
+          password: pass, 
+          balance: 0, 
+          invite_code: inviteCode, 
+          referred_by: inviteCodeInput 
+        }
+      ]);
+
+      if (insertError) {
+        console.error("Erreur d'insertion Supabase :", insertError);
+        alert("Erreur lors de l'inscription sur le serveur. Veuillez réessayer.");
+        return;
+      }
+    } catch (err) {
+      console.log("Erreur critique Supabase :", err);
+      alert("Impossible de joindre le serveur distant. Vérifiez votre connexion.");
+      return;
+    }
+  }
+
+  // Création de l'objet utilisateur local
   const userData = {
     email,
     password: pass,
@@ -135,29 +155,12 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
-  // Enregistrement Local
+  // Enregistrement local
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
-  // Traitement de l'affiliation multi-niveaux
+  // Traitement multi-niveaux si un parrain existe
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
-  }
-
-  // Enregistrement Cloud dans Supabase (rend le code immédiatement disponible pour le monde entier)
-  if (supabaseClient) {
-    try {
-      await supabaseClient.from('users').upsert([
-        { 
-          email: email, 
-          password: pass, 
-          balance: 0, 
-          invite_code: inviteCode, 
-          referred_by: inviteCodeInput 
-        }
-      ], { onConflict: 'email' });
-    } catch (err) {
-      console.log("Erreur sauvegarde Supabase :", err);
-    }
   }
 
   currentUser = userData;
