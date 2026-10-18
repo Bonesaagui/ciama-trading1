@@ -269,7 +269,8 @@ function loadUserDataFromMemory(data) {
   teamMembers = data.teamMembers || [];
 }
 
-function saveUserData() {
+// --- SAUVEGARDE SYNC DANS SUPABASE (AVEC AWAIT GARANTI) ---
+async function saveUserData() {
   if (!currentUser || !currentUser.email) return;
   const data = {
     email: currentUser.email,
@@ -289,16 +290,20 @@ function saveUserData() {
   localStorage.setItem('ciama_user_' + currentUser.email, JSON.stringify(data));
 
   if (supabaseClient) {
-    supabaseClient.from('users').upsert({
-      email: currentUser.email,
-      password: currentUser.password,
-      balance: investedBalance,
-      daily_gains: dailyGains,
-      withdraw_address: lockedWithdrawAddress,
-      invite_code: currentUser.inviteCode,
-      referred_by: currentUser.referredBy,
-      history_records: historyRecords
-    }).then();
+    try {
+      await supabaseClient.from('users').upsert({
+        email: currentUser.email,
+        password: currentUser.password,
+        balance: investedBalance,
+        daily_gains: dailyGains,
+        withdraw_address: lockedWithdrawAddress,
+        invite_code: currentUser.inviteCode,
+        referred_by: currentUser.referredBy,
+        history_records: historyRecords
+      }, { onConflict: 'email' });
+    } catch (err) {
+      console.log("Erreur sauvegarde cloud :", err);
+    }
   }
 }
 
@@ -380,19 +385,19 @@ async function initDashboard() {
     withdrawInput.style.opacity = "1";
   }
 
-  updateBalances();
+  await updateBalances();
   setupScheduleHighlight();
   await renderHistory();
   renderTeam();
   switchNavTab('maison');
 }
 
-function updateBalances() {
+async function updateBalances() {
   const totalAssets = investedBalance + dailyGains;
   document.getElementById('totalAssetsBalance').innerText = `$${totalAssets.toFixed(2)}`;
   document.getElementById('investedBalance').innerText = `$${investedBalance.toFixed(2)}`;
   document.getElementById('dailyGainsBalance').innerText = `+$${dailyGains.toFixed(2)}`;
-  saveUserData();
+  await saveUserData();
 }
 
 async function renderTeam() {
@@ -520,7 +525,7 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-// --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
+            // --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
 async function distributeReferralCommissions(depositAmount, userEmail, sponsorCode) {
   if (!sponsorCode || !supabaseClient) return;
 
@@ -626,7 +631,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
   }
 }
 
-// --- SOUMISSION DE DÉPÔT ---
+// --- SOUMISSION DE DÉPÔT AVEC SAUVEGARDE CLOUD GARANTIE ---
 async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   const proofFile = document.getElementById('depositProof').files[0];
@@ -661,7 +666,7 @@ async function submitDeposit() {
   
   historyRecords.unshift(record);
   renderHistory();
-  saveUserData();
+  await saveUserData();
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
@@ -670,10 +675,9 @@ async function submitDeposit() {
     record.status = "Approuvé";
     record.statusClass = "text-green";
     
-    updateBalances();
+    await updateBalances();
     setupScheduleHighlight(); 
-    renderHistory();
-    saveUserData();
+    await renderHistory();
 
     let sponsorCode = currentUser ? currentUser.referredBy : null;
     if (!sponsorCode && supabaseClient && currentUser) {
@@ -694,7 +698,7 @@ async function submitDeposit() {
 }
 
 // --- SOUMISSION DE RETRAIT ---
-function submitWithdrawal() {
+async function submitWithdrawal() {
   const addressInput = document.getElementById('withdrawAddress');
   const amountInput = document.getElementById('withdrawAmount');
   const amount = parseFloat(amountInput.value);
@@ -725,15 +729,14 @@ function submitWithdrawal() {
   };
   
   historyRecords.unshift(record);
-  renderHistory();
-  updateBalances();
-  saveUserData();
+  await renderHistory();
+  await updateBalances();
 
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
 // --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER ---
-function executeDailySignal() {
+async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
 
@@ -766,10 +769,9 @@ function executeDailySignal() {
   };
 
   historyRecords.unshift(record);
-  updateBalances();
+  await updateBalances();
   setupScheduleHighlight();
-  renderHistory();
-  saveUserData();
+  await renderHistory();
 
   alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)}.`);
 }
@@ -884,4 +886,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-  }
+}
