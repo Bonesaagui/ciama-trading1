@@ -150,8 +150,10 @@ async function handleRegister(e) {
           email: email, 
           password: pass, 
           balance: 0, 
+          daily_gains: 0,
           invite_code: inviteCode, 
-          referred_by: inviteCodeInput 
+          referred_by: inviteCodeInput,
+          history_records: []
         }
       ], { onConflict: 'email' });
     } catch (err) {
@@ -167,82 +169,20 @@ async function handleRegister(e) {
 
 function processMultiLevelReferral(sponsorCode, referralEmail) {
   const todayDate = new Date().toLocaleDateString('fr-FR');
-  let level1Key = null;
-  let level1Data = null;
-
   for (let i = 0; i < localStorage.length; i++) {
     const key = localStorage.key(i);
     if (key.startsWith('ciama_user_')) {
       try {
         const uData = JSON.parse(localStorage.getItem(key));
         if (uData.inviteCode === sponsorCode) {
-          level1Key = key;
-          level1Data = uData;
+          if (!uData.teamMembers) uData.teamMembers = [];
+          if (!uData.teamMembers.some(m => m.email === referralEmail)) {
+            uData.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
+            localStorage.setItem(key, JSON.stringify(uData));
+          }
           break;
         }
       } catch (err) {}
-    }
-  }
-
-  if (level1Data) {
-    if (!level1Data.teamMembers) level1Data.teamMembers = [];
-    if (!level1Data.teamMembers.some(m => m.email === referralEmail)) {
-      level1Data.teamMembers.push({ email: referralEmail, level: "Niveau 1", date: todayDate });
-      localStorage.setItem(level1Key, JSON.stringify(level1Data));
-    }
-
-    if (level1Data.referredBy) {
-      let level2Key = null;
-      let level2Data = null;
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-        if (key.startsWith('ciama_user_')) {
-          try {
-            const uData2 = JSON.parse(localStorage.getItem(key));
-            if (uData2.inviteCode === level1Data.referredBy) {
-              level2Key = key;
-              level2Data = uData2;
-              break;
-            }
-          } catch (err) {}
-        }
-      }
-
-      if (level2Data) {
-        if (!level2Data.teamMembers) level2Data.teamMembers = [];
-        if (!level2Data.teamMembers.some(m => m.email === referralEmail)) {
-          level2Data.teamMembers.push({ email: referralEmail, level: "Niveau 2", date: todayDate });
-          localStorage.setItem(level2Key, JSON.stringify(level2Data));
-        }
-
-        if (level2Data.referredBy) {
-          let level3Key = null;
-          let level3Data = null;
-
-          for (let j = 0; j < localStorage.length; j++) {
-            const key3 = localStorage.key(j);
-            if (key3.startsWith('ciama_user_')) {
-              try {
-                const uData3 = JSON.parse(localStorage.getItem(key3));
-                if (uData3.inviteCode === level2Data.referredBy) {
-                  level3Key = key3;
-                  level3Data = uData3;
-                  break;
-                }
-              } catch (e) {}
-            }
-          }
-
-          if (level3Data) {
-            if (!level3Data.teamMembers) level3Data.teamMembers = [];
-            if (!level3Data.teamMembers.some(m => m.email === referralEmail)) {
-              level3Data.teamMembers.push({ email: referralEmail, level: "Niveau 3", date: todayDate });
-              localStorage.setItem(level3Key, JSON.stringify(level3Data));
-            }
-          }
-        }
-      }
     }
   }
 }
@@ -298,7 +238,7 @@ async function handleLogin(e) {
           lockedWithdrawAddress: data.withdraw_address || "",
           hasTradedToday: false,
           lastTradeDate: "",
-          historyRecords: [],
+          historyRecords: data.history_records || [],
           usedDepositAmounts: [],
           inviteCode: data.invite_code || "CIAMA100",
           referredBy: data.referred_by || null,
@@ -363,7 +303,8 @@ function saveUserData() {
       daily_gains: dailyGains,
       withdraw_address: lockedWithdrawAddress,
       invite_code: currentUser.inviteCode,
-      referred_by: currentUser.referredBy
+      referred_by: currentUser.referredBy,
+      history_records: historyRecords
     }).then();
   }
 }
@@ -462,7 +403,6 @@ async function renderTeam() {
 
   let teamList = [];
 
-  // Récupération automatique des filleuls directement depuis Supabase
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
@@ -489,7 +429,6 @@ async function renderTeam() {
     }
   }
 
-  // Fallback avec la mémoire locale si Supabase est hors ligne ou vide
   if (teamList.length === 0 && currentUser.teamMembers && currentUser.teamMembers.length > 0) {
     teamList = currentUser.teamMembers;
   }
@@ -537,7 +476,7 @@ function switchNavTab(tabName) {
   } else if (tabName === 'team') {
     document.getElementById('viewTeam').classList.remove('hidden');
     document.getElementById('navTeam').classList.add('active');
-    renderTeam(); // Rechargement automatique de la liste des filleuls
+    renderTeam(); 
   } else if (tabName === 'profile') {
     document.getElementById('viewProfile').classList.remove('hidden');
     document.getElementById('navProfile').classList.add('active');
@@ -549,6 +488,9 @@ function openModal(modalId) {
   const targetModal = document.getElementById(modalId);
   if (targetModal) {
     targetModal.classList.remove('hidden');
+    if (modalId === 'activityModal') {
+      renderHistory();
+    }
   }
 }
 
@@ -574,7 +516,8 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-function submitDeposit() {
+// --- SOUMISSION DE DÉPÔT ET COMMISSION PARRAIN ---
+async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   const proofFile = document.getElementById('depositProof').files[0];
 
@@ -598,24 +541,59 @@ function submitDeposit() {
   usedDepositAmounts.push(amount);
   closeModal('depositModal');
 
-  const record = { id: Date.now(), type: "Dépôt USDT (BEP20)", amount: `$${amount.toFixed(2)}`, status: "En attente (1 min)", statusClass: "text-gold" };
+  const record = { id: Date.now(), type: "Dépôt USDT (BEP20)", amount: `+$${amount.toFixed(2)}`, status: "En attente (1 min)", statusClass: "text-gold" };
   historyRecords.unshift(record);
   renderHistory();
   saveUserData();
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
-  setTimeout(() => {
+  setTimeout(async () => {
     investedBalance += amount + 1.00;
-    updateBalances();
-    setupScheduleHighlight(); 
     record.status = "Approuvé";
     record.statusClass = "text-green";
+    updateBalances();
+    setupScheduleHighlight(); 
     renderHistory();
     saveUserData();
+
+    // Attribution de la commission de parrainage (5% pour le Niveau 1)
+    if (currentUser && currentUser.referredBy && supabaseClient) {
+      try {
+        const commission = amount * 0.05;
+        const { data: sponsorData } = await supabaseClient
+          .from('users')
+          .select('email, daily_gains, history_records')
+          .eq('invite_code', currentUser.referredBy)
+          .maybeSingle();
+
+        if (sponsorData) {
+          const newGains = (Number(sponsorData.daily_gains) || 0) + commission;
+          const sponsorHistory = sponsorData.history_records || [];
+          sponsorHistory.unshift({
+            id: Date.now(),
+            type: `Commission Parrainage (${currentUser.email})`,
+            amount: `+$${commission.toFixed(2)}`,
+            status: "Approuvé",
+            statusClass: "text-green"
+          });
+
+          await supabaseClient
+            .from('users')
+            .update({ 
+              daily_gains: newGains,
+              history_records: sponsorHistory
+            })
+            .eq('invite_code', currentUser.referredBy);
+        }
+      } catch (err) {
+        console.log("Erreur commission parrain :", err);
+      }
+    }
   }, 60000); 
 }
 
+// --- SOUMISSION DE RETRAIT ---
 function submitWithdrawal() {
   const addressInput = document.getElementById('withdrawAddress');
   const amountInput = document.getElementById('withdrawAmount');
@@ -636,22 +614,57 @@ function submitWithdrawal() {
   }
 
   dailyGains -= amount;
-  updateBalances();
   closeModal('withdrawModal');
 
-  const record = { id: Date.now(), type: "Retrait des Gains", amount: `$${amount.toFixed(2)}`, status: "En attente (24h-72h)", statusClass: "text-gold" };
+  const record = { id: Date.now(), type: "Retrait des Gains", amount: `-$${amount.toFixed(2)}`, status: "En attente (24h-72h)", statusClass: "text-gold" };
   historyRecords.unshift(record);
   renderHistory();
+  updateBalances();
   saveUserData();
 
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
+}
 
-  setTimeout(() => {
-    record.status = "Approuvé";
-    record.statusClass = "text-green";
-    renderHistory();
-    saveUserData();
-  }, 40000); 
+// --- EXÉCUTION DE L'ORDRE DE TRADING ---
+function executeTradeOrder() {
+  const now = new Date();
+  const currentDay = now.getDay();
+
+  if (currentDay === 0 || currentDay === 6) {
+    alert("Le marché est fermé pendant le week-end !");
+    return;
+  }
+
+  if (investedBalance < 10) {
+    alert("Solde insuffisant ! Un dépôt minimum de $10 est requis pour lancer le trading.");
+    return;
+  }
+
+  if (hasTradedToday) {
+    alert("Vous avez déjà exécuté votre position aujourd'hui. Rendez-vous demain !");
+    return;
+  }
+
+  const tradeGain = investedBalance * 0.015; // 1.5% de gain
+  dailyGains += tradeGain;
+  hasTradedToday = true;
+  lastTradeDate = now.toISOString().split('T')[0];
+
+  const record = {
+    id: Date.now(),
+    type: "Gain Trading (Signal)",
+    amount: `+$${tradeGain.toFixed(2)}`,
+    status: "Approuvé",
+    statusClass: "text-green"
+  };
+
+  historyRecords.unshift(record);
+  updateBalances();
+  setupScheduleHighlight();
+  renderHistory();
+  saveUserData();
+
+  alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)}.`);
 }
 
 function setupScheduleHighlight() {
@@ -696,29 +709,34 @@ function setupScheduleHighlight() {
         tradeBtn.style.color = "#000000"; // Texte noir
         tradeBtn.style.cursor = "pointer";
         tradeBtn.disabled = false;
+        tradeBtn.onclick = executeTradeOrder;
       }
     }
   }
 }
 
-
+// --- AFFICHAGE DE L'HISTORIQUE DES ACTIVITÉS ---
 function renderHistory() {
   const historyList = document.getElementById('historyList');
   if (!historyList) return;
+  
   historyList.innerHTML = "";
-  if (historyRecords.length === 0) {
-    historyList.innerHTML = "<p style='text-align:center; color:#64748b;'>Aucune transaction récente</p>";
+  
+  if (!historyRecords || historyRecords.length === 0) {
+    historyList.innerHTML = `<div style="text-align:center; padding: 20px; color:#64748b;">Aucune activité récente</div>`;
     return;
   }
+
   historyRecords.forEach(rec => {
     const div = document.createElement('div');
     div.className = "history-item";
+    div.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);";
     div.innerHTML = `
       <div>
-        <p><b>${rec.type}</b></p>
-        <p class="${rec.statusClass}">${rec.status}</p>
+        <p style="margin: 0; font-weight: bold; font-size: 13px; color: #f8fafc;">${rec.type}</p>
+        <p style="margin: 2px 0 0 0; font-size: 11px;" class="${rec.statusClass}">${rec.status}</p>
       </div>
-      <p><b>${rec.amount}</b></p>
+      <p style="margin: 0; font-weight: bold; font-size: 14px; color: #f8fafc;">${rec.amount}</p>
     `;
     historyList.appendChild(div);
   });
