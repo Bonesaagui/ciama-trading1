@@ -656,15 +656,49 @@ function submitWithdrawal() {
 
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
+  const todayStr = now.toISOString().split('T')[0];
 
-  if (lastTradeDate !== now.toISOString().split('T')[0]) {
+  if (lastTradeDate !== todayStr) {
     hasTradedToday = false;
   }
 
-  const activeAsset = assetsSchedule[currentDay] || "Fermé (Week-end)";
-  document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
+  const isWeekend = (currentDay === 0 || currentDay === 6);
+  const activeAsset = isWeekend ? "Fermé (Week-end)" : (assetsSchedule[currentDay] || "Fermé");
+  
+  const todayAssetEl = document.getElementById('todayAsset');
+  if (todayAssetEl) {
+    todayAssetEl.innerText = activeAsset;
+  }
+
+  // Sélection du bouton de confirmation de position
+  const tradeBtn = document.querySelector('#viewMining button, .trade-btn, #confirmPositionBtn');
+  
+  if (tradeBtn) {
+    if (isWeekend) {
+      tradeBtn.innerText = "MARCHÉ FERMÉ (WEEK-END)";
+      tradeBtn.style.backgroundColor = "#ef4444"; // Rouge
+      tradeBtn.style.color = "#ffffff";
+      tradeBtn.style.cursor = "not-allowed";
+      tradeBtn.disabled = true;
+    } else {
+      if (hasTradedToday) {
+        tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
+        tradeBtn.style.backgroundColor = "#475569"; // Gris
+        tradeBtn.style.color = "#94a3b8";
+        tradeBtn.style.cursor = "not-allowed";
+        tradeBtn.disabled = true;
+      } else {
+        tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
+        tradeBtn.style.backgroundColor = "#eab308"; // Jaune / Or
+        tradeBtn.style.color = "#000000";
+        tradeBtn.style.cursor = "pointer";
+        tradeBtn.disabled = false;
+      }
+    }
+  }
 }
+
 
 function renderHistory() {
   const historyList = document.getElementById('historyList');
