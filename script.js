@@ -41,7 +41,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION AVEC CORRECTION MULTI-PARRAINS (SUPABASE + LOCALSTORAGE) ---
+// --- INSCRIPTION AVEC VÉRIFICATION UNIVERSELLE DU PARRAIN ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -70,26 +70,25 @@ async function handleRegister(e) {
     return;
   }
 
-  // --- RECHERCHE DU PARRAIN (DANS SUPABASE ET LOCALSTORAGE) ---
+  // --- RECHERCHE DU PARRAIN (ADMIN OU UTILISATEUR GLOBALE SUR SUPABASE) ---
   const MASTER_FOUNDER_CODE = "CIAMA001";
   let sponsorFound = false;
 
   if (inviteCodeInput === MASTER_FOUNDER_CODE || inviteCodeInput === "") {
-    // Premier administrateur ou code fondateur
+    // Code administrateur master
     sponsorFound = true;
     if (inviteCodeInput === MASTER_FOUNDER_CODE) inviteCodeInput = "CIAMA001";
     else inviteCodeInput = null;
   } else {
-    // 1. Vérification dans la base de données globale Supabase
+    // 1. Vérification réseau universelle dans Supabase
     if (supabaseClient) {
       try {
         const { data, error } = await supabaseClient
           .from('users')
           .select('invite_code')
-          .eq('invite_code', inviteCodeInput)
-          .maybeSingle();
+          .eq('invite_code', inviteCodeInput);
 
-        if (data) {
+        if (data && data.length > 0) {
           sponsorFound = true;
         }
       } catch (err) {
@@ -97,14 +96,14 @@ async function handleRegister(e) {
       }
     }
 
-    // 2. Vérification dans le localStorage local si non trouvé dans Supabase
+    // 2. Vérification de secours dans le localStorage local
     if (!sponsorFound) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
         if (key.startsWith('ciama_user_')) {
           try {
             const uData = JSON.parse(localStorage.getItem(key));
-            if (uData.inviteCode === inviteCodeInput) {
+            if (uData && uData.inviteCode === inviteCodeInput) {
               sponsorFound = true;
               break;
             }
@@ -144,14 +143,20 @@ async function handleRegister(e) {
     processMultiLevelReferral(inviteCodeInput, email);
   }
 
-  // Enregistrement Cloud dans Supabase
+  // Enregistrement Cloud dans Supabase (rend le code immédiatement disponible pour le monde entier)
   if (supabaseClient) {
     try {
-      await supabaseClient.from('users').insert([
-        { email: email, password: pass, balance: 0, invite_code: inviteCode, referred_by: inviteCodeInput }
-      ]);
+      await supabaseClient.from('users').upsert([
+        { 
+          email: email, 
+          password: pass, 
+          balance: 0, 
+          invite_code: inviteCode, 
+          referred_by: inviteCodeInput 
+        }
+      ], { onConflict: 'email' });
     } catch (err) {
-      console.log("Sauvegarde Supabase en attente ou enregistrée localement.");
+      console.log("Erreur sauvegarde Supabase :", err);
     }
   }
 
@@ -618,42 +623,33 @@ function submitWithdrawal() {
 function setupScheduleHighlight() {
   const now = new Date();
   const currentDay = now.getDay();
-  const currentHour = now.getHours();
-  const todayStr = now.toISOString().split('T')[0];
 
-  if (lastTradeDate !== todayStr) {
+  if (lastTradeDate !== now.toISOString().split('T')[0]) {
     hasTradedToday = false;
   }
 
   const activeAsset = assetsSchedule[currentDay] || "Fermé (Week-end)";
   document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
+}
 
-  let rateText = "1.5%";
-  if (investedBalance >= 50 && investedBalance <= 200) {
-    rateText = "2%";
-  } else if (investedBalance >= 300) {
-    rateText = "3%";
+function renderHistory() {
+  const historyList = document.getElementById('historyList');
+  if (!historyList) return;
+  historyList.innerHTML = "";
+  if (historyRecords.length === 0) {
+    historyList.innerHTML = "<p style='text-align:center; color:#64748b;'>Aucune transaction récente</p>";
+    return;
   }
-  const vipRateDisplay = document.getElementById('currentVipRate');
-  if (vipRateDisplay) {
-    vipRateDisplay.innerText = rateText;
-  }
-
-  const isWeekend = (currentDay === 0 || currentDay === 6);
-  const isSignalTime = (currentHour >= 18 && currentHour < 20);
-  const btn = document.getElementById('executeTradeBtn');
-
-  if (btn) {
-    if (isWeekend) {
-      btn.disabled = true;
-      btn.style.background = "#1e293b";
-      btn.style.color = "#ef4444";
-      btn.innerText = "SIGNAL FERMÉ LE WEEK-END";
-    } else if (hasTradedToday) {
-      btn.disabled = true;
-      btn.style.background = "#334155";
-      btn.style.color = "#94a3b8";
-      btn.innerText = "SIGNAL DÉJÀ EXÉCUTÉ AUJOURD'HUI";
-    }
-  }
-      }
+  historyRecords.forEach(rec => {
+    const div = document.createElement('div');
+    div.className = "history-item";
+    div.innerHTML = `
+      <div>
+        <p><b>${rec.type}</b></p>
+        <p class="${rec.statusClass}">${rec.status}</p>
+      </div>
+      <p><b>${rec.amount}</b></p>
+    `;
+    historyList.appendChild(div);
+  });
+}
