@@ -676,12 +676,14 @@ function setupScheduleHighlight() {
   
   if (tradeBtn) {
     if (isWeekend) {
+      // MODE WEEK-END (ROUGE & BLOQUÉ)
       tradeBtn.innerText = "MARCHÉ FERMÉ (WEEK-END)";
       tradeBtn.style.backgroundColor = "#ef4444"; // Rouge
-      tradeBtn.style.color = "#ffffff";
+      tradeBtn.style.color = "#ffffff"; // Texte blanc
       tradeBtn.style.cursor = "not-allowed";
       tradeBtn.disabled = true;
     } else {
+      // MODE SEMAINE (LUNDI AU VENDREDI)
       if (hasTradedToday) {
         tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
         tradeBtn.style.backgroundColor = "#475569"; // Gris
@@ -691,7 +693,7 @@ function setupScheduleHighlight() {
       } else {
         tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
         tradeBtn.style.backgroundColor = "#eab308"; // Jaune / Or
-        tradeBtn.style.color = "#000000";
+        tradeBtn.style.color = "#000000"; // Texte noir
         tradeBtn.style.cursor = "pointer";
         tradeBtn.disabled = false;
       }
