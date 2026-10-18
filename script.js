@@ -180,7 +180,7 @@ function processMultiLevelReferral(sponsorCode, referralEmail) {
   }
 }
 
-// --- CONNEXION ---
+// --- CONNEXION CLOUD PRIORITAIRE ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -205,6 +205,11 @@ async function handleLogin(e) {
           return;
         }
 
+        let historyArr = data.history_records || [];
+        if (typeof historyArr === 'string') {
+          try { historyArr = JSON.parse(historyArr); } catch (e) { historyArr = []; }
+        }
+
         currentUser = {
           email: data.email || email,
           password: data.password || pass,
@@ -213,7 +218,7 @@ async function handleLogin(e) {
           lockedWithdrawAddress: data.withdraw_address || "",
           hasTradedToday: false,
           lastTradeDate: "",
-          historyRecords: data.history_records || [],
+          historyRecords: historyArr,
           usedDepositAmounts: [],
           inviteCode: data.invite_code || "CIAMA100",
           referredBy: data.referred_by || null,
@@ -221,7 +226,7 @@ async function handleLogin(e) {
         };
 
         loadUserDataFromMemory(currentUser);
-        saveUserData();
+        localStorage.setItem('ciama_user_' + email, JSON.stringify(currentUser));
         initDashboard();
         return;
       }
@@ -239,7 +244,6 @@ async function handleLogin(e) {
     }
     currentUser = data;
     loadUserDataFromMemory(data);
-    saveUserData();
     initDashboard();
     return;
   }
@@ -323,13 +327,38 @@ function logout() {
   document.getElementById('appDashboard').classList.add('hidden');
 }
 
-function initDashboard() {
+async function initDashboard() {
   document.getElementById('authSection').classList.add('hidden');
   document.getElementById('appDashboard').classList.remove('hidden');
   
   const displayEmail = (currentUser && currentUser.email) ? currentUser.email : "Utilisateur";
   document.getElementById('userEmailDisplay').innerText = displayEmail;
   document.getElementById('profileEmail').innerText = displayEmail;
+
+  if (currentUser && currentUser.email && supabaseClient) {
+    try {
+      const { data } = await supabaseClient
+        .from('users')
+        .select('*')
+        .eq('email', currentUser.email)
+        .maybeSingle();
+
+      if (data) {
+        investedBalance = Number(data.balance) || 0;
+        dailyGains = Number(data.daily_gains) || 0;
+        if (data.withdraw_address) lockedWithdrawAddress = data.withdraw_address;
+        if (data.history_records) {
+          let recs = data.history_records;
+          if (typeof recs === 'string') {
+            try { recs = JSON.parse(recs); } catch (e) {}
+          }
+          if (Array.isArray(recs)) historyRecords = recs;
+        }
+      }
+    } catch (err) {
+      console.log("Erreur de rafraîchissement Supabase :", err);
+    }
+  }
 
   if (document.getElementById('inviteCodeOnlyDisplay')) {
     document.getElementById('inviteCodeOnlyDisplay').value = currentUser.inviteCode || "";
@@ -353,7 +382,7 @@ function initDashboard() {
 
   updateBalances();
   setupScheduleHighlight();
-  renderHistory();
+  await renderHistory();
   renderTeam();
   switchNavTab('maison');
 }
@@ -441,6 +470,7 @@ function switchNavTab(tabName) {
   if (tabName === 'maison') {
     document.getElementById('viewMaison').classList.remove('hidden');
     document.getElementById('navMaison').classList.add('active');
+    renderHistory();
   } else if (tabName === 'vip') {
     document.getElementById('viewVip').classList.remove('hidden');
     document.getElementById('navVip').classList.add('active');
@@ -495,7 +525,6 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
   if (!sponsorCode || !supabaseClient) return;
 
   try {
-    // 1. NIVEAU 1 (5%)
     const commissionL1 = depositAmount * 0.05;
     const { data: level1Sponsor } = await supabaseClient
       .from('users')
@@ -526,7 +555,6 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
         })
         .eq('invite_code', sponsorCode);
 
-      // 2. NIVEAU 2 (2%)
       if (level1Sponsor.referred_by) {
         const commissionL2 = depositAmount * 0.02;
         const { data: level2Sponsor } = await supabaseClient
@@ -558,7 +586,6 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
             })
             .eq('invite_code', level1Sponsor.referred_by);
 
-          // 3. NIVEAU 3 (1%)
           if (level2Sponsor.referred_by) {
             const commissionL3 = depositAmount * 0.01;
             const { data: level3Sponsor } = await supabaseClient
@@ -624,7 +651,6 @@ async function submitDeposit() {
   usedDepositAmounts.push(amount);
   closeModal('depositModal');
 
-  // 1. CRÉATION ET ENREGISTREMENT DE L'HISTORIQUE EN ATTENTE (1 MIN)
   const record = { 
     id: Date.now(), 
     type: "Dépôt USDT (BEP20)", 
@@ -639,7 +665,6 @@ async function submitDeposit() {
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
-  // 2. TIMEOUT 1 MINUTE : CRÉDIT DU COMPTE ET APPOBATION AUTOMATIQUE
   setTimeout(async () => {
     investedBalance += amount + 1.00;
     record.status = "Approuvé";
@@ -650,7 +675,6 @@ async function submitDeposit() {
     renderHistory();
     saveUserData();
 
-    // Distribution des commissions
     let sponsorCode = currentUser ? currentUser.referredBy : null;
     if (!sponsorCode && supabaseClient && currentUser) {
       const { data: userData } = await supabaseClient
@@ -692,7 +716,6 @@ function submitWithdrawal() {
   dailyGains -= amount;
   closeModal('withdrawModal');
 
-  // ENREGISTREMENT DE L'HISTORIQUE EN ATTENTE D'APPROBATION (24H - 72H)
   const record = { 
     id: Date.now(), 
     type: "Retrait des Gains", 
@@ -709,8 +732,8 @@ function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING ---
-function executeTradeOrder() {
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER ---
+function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
 
@@ -736,9 +759,9 @@ function executeTradeOrder() {
 
   const record = {
     id: Date.now(),
-    type: "Gain Trading (Signal)",
+    type: "Signal Minier",
     amount: `+$${tradeGain.toFixed(2)}`,
-    status: "Approuvé",
+    status: "Exécuté",
     statusClass: "text-green"
   };
 
@@ -768,7 +791,7 @@ function setupScheduleHighlight() {
     todayAssetEl.innerText = activeAsset;
   }
 
-  const tradeBtn = document.querySelector('#viewMining button, .trade-btn, #confirmPositionBtn');
+  const tradeBtn = document.getElementById('executeTradeBtn');
   
   if (tradeBtn) {
     if (isWeekend) {
@@ -790,20 +813,19 @@ function setupScheduleHighlight() {
         tradeBtn.style.color = "#000000";
         tradeBtn.style.cursor = "pointer";
         tradeBtn.disabled = false;
-        tradeBtn.onclick = executeTradeOrder;
       }
     }
   }
 }
 
-// --- AFFICHAGE DE L'HISTORIQUE D'ACTIVITÉS ---
+// --- AFFICHAGE UNIFIÉ DE L'HISTORIQUE (ACCUEIL & MODAL) ---
 async function renderHistory() {
-  const historyList = document.getElementById('historyList');
-  if (!historyList) return;
+  const homeTbody = document.getElementById('homeHistoryTable');
+  const modalTbody = document.getElementById('historyTable');
 
   if (currentUser && currentUser.email && supabaseClient) {
     try {
-      const { data, error } = await supabaseClient
+      const { data } = await supabaseClient
         .from('users')
         .select('history_records')
         .eq('email', currentUser.email)
@@ -819,35 +841,47 @@ async function renderHistory() {
         }
       }
     } catch (err) {
-      console.log("Erreur historique :", err);
+      console.log("Erreur chargement historique :", err);
     }
   }
 
-  historyList.innerHTML = "";
-  
-  if (!historyRecords || historyRecords.length === 0) {
-    historyList.innerHTML = `<div style="text-align:center; padding: 20px; color:#64748b;">Aucune activité récente</div>`;
-    return;
-  }
+  const targets = [homeTbody, modalTbody].filter(Boolean);
 
-  historyRecords.forEach(rec => {
-    const div = document.createElement('div');
-    div.className = "history-item";
-    div.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);";
-    
-    // Détermination de la couleur du statut
-    let statusStyle = "color: #eab308;"; // Jaune par défaut
-    if (rec.statusClass === 'text-green' || rec.status === 'Approuvé') {
-      statusStyle = "color: #22c55e;"; // Vert
+  targets.forEach(tbody => {
+    tbody.innerHTML = "";
+
+    if (!historyRecords || historyRecords.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="3" style="text-align:center; padding: 15px; color:#64748b;">Aucune activité récente</td></tr>`;
+      return;
     }
 
-    div.innerHTML = `
-      <div>
-        <p style="margin: 0; font-weight: bold; font-size: 13px; color: #f8fafc;">${rec.type}</p>
-        <p style="margin: 2px 0 0 0; font-size: 11px; ${statusStyle}">${rec.status}</p>
-      </div>
-      <p style="margin: 0; font-weight: bold; font-size: 14px; color: #f8fafc;">${rec.amount}</p>
-    `;
-    historyList.appendChild(div);
+    historyRecords.forEach(rec => {
+      let isExecutedOrApproved = rec.status === 'Exécuté' || rec.status === 'Approuvé' || rec.statusClass === 'text-green';
+      let statusColor = isExecutedOrApproved ? '#22c55e' : '#eab308';
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="padding: 10px 5px; font-weight: bold; font-size: 13px; color: #f8fafc;">${rec.type}</td>
+        <td style="padding: 10px 5px; font-weight: bold; font-size: 13px; color: #f8fafc;">${rec.amount}</td>
+        <td style="padding: 10px 5px; font-weight: bold; font-size: 13px; color: ${statusColor};">${rec.status}</td>
+      `;
+      tbody.appendChild(tr);
+    });
   });
-        }
+}
+
+function copyInviteCodeOnly() {
+  const input = document.getElementById('inviteCodeOnlyDisplay');
+  if (input && input.value) {
+    navigator.clipboard.writeText(input.value);
+    alert("Code d'invitation copié : " + input.value);
+  }
+}
+
+function copyInviteCode() {
+  const input = document.getElementById('inviteCodeDisplay');
+  if (input && input.value) {
+    navigator.clipboard.writeText(input.value);
+    alert("Lien d'invitation copié !");
+  }
+}
