@@ -516,7 +516,116 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-// --- SOUMISSION DE DÉPÔT ET COMMISSION PARRAIN ---
+// --- DISTRIBUTION AUTOMATIQUE DES COMMISSIONS MULTI-NIVEAUX (5%, 2%, 1%) ---
+async function distributeReferralCommissions(depositAmount, userEmail, sponsorCode) {
+  if (!sponsorCode || !supabaseClient) return;
+
+  try {
+    // 1. NIVEAU 1 : 5%
+    const commissionL1 = depositAmount * 0.05;
+    const { data: level1Sponsor } = await supabaseClient
+      .from('users')
+      .select('email, daily_gains, history_records, referred_by')
+      .eq('invite_code', sponsorCode)
+      .maybeSingle();
+
+    if (level1Sponsor) {
+      const currentGainsL1 = Number(level1Sponsor.daily_gains) || 0;
+      let historyL1 = level1Sponsor.history_records || [];
+      if (typeof historyL1 === 'string') {
+        try { historyL1 = JSON.parse(historyL1); } catch (e) { historyL1 = []; }
+      }
+
+      historyL1.unshift({
+        id: Date.now(),
+        type: `Bonus Parrainage 5% (L1: ${userEmail})`,
+        amount: `+$${commissionL1.toFixed(2)}`,
+        status: "Approuvé",
+        statusClass: "text-green"
+      });
+
+      await supabaseClient
+        .from('users')
+        .update({
+          daily_gains: currentGainsL1 + commissionL1,
+          history_records: historyL1
+        })
+        .eq('invite_code', sponsorCode);
+
+      // 2. NIVEAU 2 : 2%
+      if (level1Sponsor.referred_by) {
+        const commissionL2 = depositAmount * 0.02;
+        const { data: level2Sponsor } = await supabaseClient
+          .from('users')
+          .select('email, daily_gains, history_records, referred_by')
+          .eq('invite_code', level1Sponsor.referred_by)
+          .maybeSingle();
+
+        if (level2Sponsor) {
+          const currentGainsL2 = Number(level2Sponsor.daily_gains) || 0;
+          let historyL2 = level2Sponsor.history_records || [];
+          if (typeof historyL2 === 'string') {
+            try { historyL2 = JSON.parse(historyL2); } catch (e) { historyL2 = []; }
+          }
+
+          historyL2.unshift({
+            id: Date.now() + 1,
+            type: `Bonus Parrainage 2% (L2: ${userEmail})`,
+            amount: `+$${commissionL2.toFixed(2)}`,
+            status: "Approuvé",
+            statusClass: "text-green"
+          });
+
+          await supabaseClient
+            .from('users')
+            .update({
+              daily_gains: currentGainsL2 + commissionL2,
+              history_records: historyL2
+            })
+            .eq('invite_code', level1Sponsor.referred_by);
+
+          // 3. NIVEAU 3 : 1%
+          if (level2Sponsor.referred_by) {
+            const commissionL3 = depositAmount * 0.01;
+            const { data: level3Sponsor } = await supabaseClient
+              .from('users')
+              .select('email, daily_gains, history_records')
+              .eq('invite_code', level2Sponsor.referred_by)
+              .maybeSingle();
+
+            if (level3Sponsor) {
+              const currentGainsL3 = Number(level3Sponsor.daily_gains) || 0;
+              let historyL3 = level3Sponsor.history_records || [];
+              if (typeof historyL3 === 'string') {
+                try { historyL3 = JSON.parse(historyL3); } catch (e) { historyL3 = []; }
+              }
+
+              historyL3.unshift({
+                id: Date.now() + 2,
+                type: `Bonus Parrainage 1% (L3: ${userEmail})`,
+                amount: `+$${commissionL3.toFixed(2)}`,
+                status: "Approuvé",
+                statusClass: "text-green"
+              });
+
+              await supabaseClient
+                .from('users')
+                .update({
+                  daily_gains: currentGainsL3 + commissionL3,
+                  history_records: historyL3
+                })
+                .eq('invite_code', level2Sponsor.referred_by);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.log("Erreur lors de la distribution multi-niveaux :", err);
+  }
+}
+
+// --- SOUMISSION DE DÉPÔT ET DÉCLENCHEMENT DES COMMISSIONS ---
 async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   const proofFile = document.getElementById('depositProof').files[0];
@@ -541,7 +650,13 @@ async function submitDeposit() {
   usedDepositAmounts.push(amount);
   closeModal('depositModal');
 
-  const record = { id: Date.now(), type: "Dépôt USDT (BEP20)", amount: `+$${amount.toFixed(2)}`, status: "En attente (1 min)", statusClass: "text-gold" };
+  const record = { 
+    id: Date.now(), 
+    type: "Dépôt USDT (BEP20)", 
+    amount: `+$${amount.toFixed(2)}`, 
+    status: "En attente (1 min)", 
+    statusClass: "text-gold" 
+  };
   historyRecords.unshift(record);
   renderHistory();
   saveUserData();
@@ -557,38 +672,9 @@ async function submitDeposit() {
     renderHistory();
     saveUserData();
 
-    // Attribution de la commission de parrainage (5% pour le Niveau 1)
-    if (currentUser && currentUser.referredBy && supabaseClient) {
-      try {
-        const commission = amount * 0.05;
-        const { data: sponsorData } = await supabaseClient
-          .from('users')
-          .select('email, daily_gains, history_records')
-          .eq('invite_code', currentUser.referredBy)
-          .maybeSingle();
-
-        if (sponsorData) {
-          const newGains = (Number(sponsorData.daily_gains) || 0) + commission;
-          const sponsorHistory = sponsorData.history_records || [];
-          sponsorHistory.unshift({
-            id: Date.now(),
-            type: `Commission Parrainage (${currentUser.email})`,
-            amount: `+$${commission.toFixed(2)}`,
-            status: "Approuvé",
-            statusClass: "text-green"
-          });
-
-          await supabaseClient
-            .from('users')
-            .update({ 
-              daily_gains: newGains,
-              history_records: sponsorHistory
-            })
-            .eq('invite_code', currentUser.referredBy);
-        }
-      } catch (err) {
-        console.log("Erreur commission parrain :", err);
-      }
+    // Distribution des commissions aux parrains (Niveau 1: 5%, Niveau 2: 2%, Niveau 3: 1%)
+    if (currentUser && currentUser.referredBy) {
+      await distributeReferralCommissions(amount, currentUser.email, currentUser.referredBy);
     }
   }, 60000); 
 }
@@ -616,7 +702,13 @@ function submitWithdrawal() {
   dailyGains -= amount;
   closeModal('withdrawModal');
 
-  const record = { id: Date.now(), type: "Retrait des Gains", amount: `-$${amount.toFixed(2)}`, status: "En attente (24h-72h)", statusClass: "text-gold" };
+  const record = { 
+    id: Date.now(), 
+    type: "Retrait des Gains", 
+    amount: `-$${amount.toFixed(2)}`, 
+    status: "En attente (24h-72h)", 
+    statusClass: "text-gold" 
+  };
   historyRecords.unshift(record);
   renderHistory();
   updateBalances();
@@ -715,11 +807,33 @@ function setupScheduleHighlight() {
   }
 }
 
-// --- AFFICHAGE DE L'HISTORIQUE DES ACTIVITÉS ---
-function renderHistory() {
+// --- AFFICHAGE SYNCHRONISÉ DE L'HISTORIQUE ---
+async function renderHistory() {
   const historyList = document.getElementById('historyList');
   if (!historyList) return;
   
+  if (currentUser && currentUser.email && supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('history_records')
+        .eq('email', currentUser.email)
+        .maybeSingle();
+
+      if (data && data.history_records) {
+        let recs = data.history_records;
+        if (typeof recs === 'string') {
+          try { recs = JSON.parse(recs); } catch (e) {}
+        }
+        if (Array.isArray(recs) && recs.length > 0) {
+          historyRecords = recs;
+        }
+      }
+    } catch (err) {
+      console.log("Erreur historique Supabase :", err);
+    }
+  }
+
   historyList.innerHTML = "";
   
   if (!historyRecords || historyRecords.length === 0) {
