@@ -41,7 +41,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION AVEC VÉRIFICATION SUPABASE STRICTE ET UNIVERSELLE ---
+// --- INSCRIPTION SÉCURISÉE ET UNIVERSELLE AVEC SUPABASE ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -64,7 +64,13 @@ async function handleRegister(e) {
     return;
   }
 
-  // --- VÉRIFICATION DU PARRAIN (GLOBALEMENT DANS SUPABASE) ---
+  const existingUser = localStorage.getItem('ciama_user_' + email);
+  if (existingUser) {
+    alert("Un compte existe déjà avec cette adresse email ! Veuillez vous connecter.");
+    return;
+  }
+
+  // --- RECHERCHE DU PARRAIN (DANS SUPABASE ET LOCALSTORAGE) ---
   const MASTER_FOUNDER_CODE = "CIAMA001";
   let sponsorFound = false;
 
@@ -73,9 +79,9 @@ async function handleRegister(e) {
     if (inviteCodeInput === MASTER_FOUNDER_CODE) inviteCodeInput = "CIAMA001";
     else inviteCodeInput = null;
   } else {
+    // 1. Recherche globale Supabase
     if (supabaseClient) {
       try {
-        // On cherche le code d'invitation directement dans la base de données Supabase
         const { data, error } = await supabaseClient
           .from('users')
           .select('invite_code')
@@ -85,11 +91,11 @@ async function handleRegister(e) {
           sponsorFound = true;
         }
       } catch (err) {
-        console.log("Erreur de connexion à Supabase pour le parrain :", err);
+        console.log("Erreur de recherche Supabase :", err);
       }
     }
 
-    // Fallback de secours local si Supabase ne répond pas
+    // 2. Recherche locale de secours
     if (!sponsorFound) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -107,39 +113,12 @@ async function handleRegister(e) {
   }
 
   if (!sponsorFound) {
-    alert("Code d'invitation invalide ou inconnu ! Ce code n'existe pas sur la plateforme.");
+    alert("Code d'invitation invalide ou inconnu ! Veuillez utiliser le code de votre parrain.");
     return;
   }
 
-  // Génération du nouveau code unique de l'utilisateur
+  // Code d'invitation unique pour ce nouvel utilisateur
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
-
-  // --- SAUVEGARDE OBLIGATOIRE DANS SUPABASE EN PREMIER ---
-  if (supabaseClient) {
-    try {
-      const { error: insertError } = await supabaseClient.from('users').insert([
-        { 
-          email: email, 
-          password: pass, 
-          balance: 0, 
-          invite_code: inviteCode, 
-          referred_by: inviteCodeInput 
-        }
-      ]);
-
-      if (insertError) {
-        console.error("Erreur d'insertion Supabase :", insertError);
-        alert("Erreur lors de l'inscription sur le serveur. Veuillez réessayer.");
-        return;
-      }
-    } catch (err) {
-      console.log("Erreur critique Supabase :", err);
-      alert("Impossible de joindre le serveur distant. Vérifiez votre connexion.");
-      return;
-    }
-  }
-
-  // Création de l'objet utilisateur local
   const userData = {
     email,
     password: pass,
@@ -155,12 +134,29 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
-  // Enregistrement local
+  // 1. Enregistrement local
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
-  // Traitement multi-niveaux si un parrain existe
+  // 2. Traitement local du parrainage multi-niveaux
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
+  }
+
+  // 3. Enregistrement Cloud dans Supabase
+  if (supabaseClient) {
+    try {
+      await supabaseClient.from('users').upsert([
+        { 
+          email: email, 
+          password: pass, 
+          balance: 0, 
+          invite_code: inviteCode, 
+          referred_by: inviteCodeInput 
+        }
+      ], { onConflict: 'email' });
+    } catch (err) {
+      console.log("Sauvegarde Supabase en attente ou enregistrée localement.");
+    }
   }
 
   currentUser = userData;
@@ -448,7 +444,8 @@ function updateBalances() {
   saveUserData();
 }
 
-function renderTeam() {
+// --- AFFICHAGE ET SYNCHRONISATION EN TEMPS RÉEL DE L'ÉQUIPE ---
+async function renderTeam() {
   const tbody = document.getElementById('teamMembersTable');
   const totalCountEl = document.getElementById('totalTeamMembers');
   const l1CountEl = document.getElementById('teamL1Count');
@@ -456,21 +453,62 @@ function renderTeam() {
 
   if (!tbody) return;
 
+  if (!currentUser || !currentUser.inviteCode) {
+    tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Veuillez vous connecter</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Chargement de l'équipe...</td></tr>`;
+
+  let teamList = [];
+
+  // Récupération automatique des filleuls directement depuis Supabase
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient
+        .from('users')
+        .select('email, created_at, referred_by')
+        .eq('referred_by', currentUser.inviteCode);
+
+      if (data && data.length > 0) {
+        teamList = data.map(user => {
+          let dateStr = "Récemment";
+          if (user.created_at) {
+            const d = new Date(user.created_at);
+            dateStr = d.toLocaleDateString('fr-FR');
+          }
+          return {
+            email: user.email,
+            level: "Niveau 1",
+            date: dateStr
+          };
+        });
+      }
+    } catch (err) {
+      console.log("Erreur de récupération des filleuls Cloud :", err);
+    }
+  }
+
+  // Fallback avec la mémoire locale si Supabase est hors ligne ou vide
+  if (teamList.length === 0 && currentUser.teamMembers && currentUser.teamMembers.length > 0) {
+    teamList = currentUser.teamMembers;
+  }
+
   tbody.innerHTML = "";
   
-  const l1List = teamMembers.filter(m => m.level === "Niveau 1");
-  const l2l3List = teamMembers.filter(m => m.level === "Niveau 2" || m.level === "Niveau 3");
+  const l1List = teamList.filter(m => m.level === "Niveau 1");
+  const l2l3List = teamList.filter(m => m.level === "Niveau 2" || m.level === "Niveau 3");
 
-  if (totalCountEl) totalCountEl.innerText = teamMembers.length;
+  if (totalCountEl) totalCountEl.innerText = teamList.length;
   if (l1CountEl) l1CountEl.innerText = l1List.length;
   if (l2l3CountEl) l2l3CountEl.innerText = l2l3List.length;
 
-  if (teamMembers.length === 0) {
+  if (teamList.length === 0) {
     tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Aucun filleul pour le moment</td></tr>`;
     return;
   }
 
-  teamMembers.forEach(m => {
+  teamList.forEach(m => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><b>${m.email}</b></td>
@@ -497,16 +535,9 @@ function switchNavTab(tabName) {
     document.getElementById('viewMining').classList.remove('hidden');
     document.getElementById('navMining').classList.add('active');
   } else if (tabName === 'team') {
-    if (currentUser && currentUser.email) {
-      const latestData = localStorage.getItem('ciama_user_' + currentUser.email);
-      if (latestData) {
-        currentUser = JSON.parse(latestData);
-        teamMembers = currentUser.teamMembers || [];
-      }
-      renderTeam();
-    }
     document.getElementById('viewTeam').classList.remove('hidden');
     document.getElementById('navTeam').classList.add('active');
+    renderTeam(); // Rechargement automatique de la liste des filleuls
   } else if (tabName === 'profile') {
     document.getElementById('viewProfile').classList.remove('hidden');
     document.getElementById('navProfile').classList.add('active');
