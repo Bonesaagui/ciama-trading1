@@ -41,7 +41,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION SÉCURISÉE ET UNIVERSELLE AVEC SUPABASE ---
+// --- INSCRIPTION SÉCURISÉE AVEC SUPABASE ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -70,7 +70,6 @@ async function handleRegister(e) {
     return;
   }
 
-  // --- RECHERCHE DU PARRAIN (DANS SUPABASE ET LOCALSTORAGE) ---
   const MASTER_FOUNDER_CODE = "CIAMA001";
   let sponsorFound = false;
 
@@ -79,7 +78,6 @@ async function handleRegister(e) {
     if (inviteCodeInput === MASTER_FOUNDER_CODE) inviteCodeInput = "CIAMA001";
     else inviteCodeInput = null;
   } else {
-    // 1. Recherche globale Supabase
     if (supabaseClient) {
       try {
         const { data, error } = await supabaseClient
@@ -95,7 +93,6 @@ async function handleRegister(e) {
       }
     }
 
-    // 2. Recherche locale de secours
     if (!sponsorFound) {
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -117,7 +114,6 @@ async function handleRegister(e) {
     return;
   }
 
-  // Code d'invitation unique pour ce nouvel utilisateur
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
   const userData = {
     email,
@@ -134,15 +130,12 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
-  // 1. Enregistrement local
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
-  // 2. Traitement local du parrainage multi-niveaux
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
   }
 
-  // 3. Enregistrement Cloud dans Supabase
   if (supabaseClient) {
     try {
       await supabaseClient.from('users').upsert([
@@ -157,7 +150,7 @@ async function handleRegister(e) {
         }
       ], { onConflict: 'email' });
     } catch (err) {
-      console.log("Sauvegarde Supabase en attente ou enregistrée localement.");
+      console.log("Sauvegarde Supabase :", err);
     }
   }
 
@@ -198,24 +191,6 @@ async function handleLogin(e) {
     return;
   }
 
-  let savedData = localStorage.getItem('ciama_user_' + email);
-
-  if (savedData) {
-    const data = JSON.parse(savedData);
-    if (data.password && data.password !== pass) {
-      alert("Mot de passe incorrect ! Veuillez réessayer.");
-      return;
-    }
-    if (!data.password) {
-      data.password = pass;
-    }
-    currentUser = data;
-    loadUserDataFromMemory(data);
-    saveUserData();
-    initDashboard();
-    return;
-  }
-
   if (supabaseClient) {
     try {
       const { data, error } = await supabaseClient
@@ -233,8 +208,8 @@ async function handleLogin(e) {
         currentUser = {
           email: data.email || email,
           password: data.password || pass,
-          investedBalance: data.balance || 0,
-          dailyGains: data.daily_gains || 0,
+          investedBalance: Number(data.balance) || 0,
+          dailyGains: Number(data.daily_gains) || 0,
           lockedWithdrawAddress: data.withdraw_address || "",
           hasTradedToday: false,
           lastTradeDate: "",
@@ -245,14 +220,28 @@ async function handleLogin(e) {
           teamMembers: []
         };
 
-        saveUserData();
         loadUserDataFromMemory(currentUser);
+        saveUserData();
         initDashboard();
         return;
       }
     } catch (err) {
-      console.log("Erreur de vérification cloud", err);
+      console.log("Erreur cloud connexion", err);
     }
+  }
+
+  let savedData = localStorage.getItem('ciama_user_' + email);
+  if (savedData) {
+    const data = JSON.parse(savedData);
+    if (data.password && data.password !== pass) {
+      alert("Mot de passe incorrect ! Veuillez réessayer.");
+      return;
+    }
+    currentUser = data;
+    loadUserDataFromMemory(data);
+    saveUserData();
+    initDashboard();
+    return;
   }
 
   alert("Aucun compte trouvé avec cet email ! Veuillez d'abord vous inscrire.");
@@ -341,14 +330,6 @@ function initDashboard() {
   const displayEmail = (currentUser && currentUser.email) ? currentUser.email : "Utilisateur";
   document.getElementById('userEmailDisplay').innerText = displayEmail;
   document.getElementById('profileEmail').innerText = displayEmail;
-  
-  if (currentUser && currentUser.email) {
-    const latestData = localStorage.getItem('ciama_user_' + currentUser.email);
-    if (latestData) {
-      currentUser = JSON.parse(latestData);
-      loadUserDataFromMemory(currentUser);
-    }
-  }
 
   if (document.getElementById('inviteCodeOnlyDisplay')) {
     document.getElementById('inviteCodeOnlyDisplay').value = currentUser.inviteCode || "";
@@ -385,7 +366,6 @@ function updateBalances() {
   saveUserData();
 }
 
-// --- AFFICHAGE ET SYNCHRONISATION EN TEMPS RÉEL DE L'ÉQUIPE ---
 async function renderTeam() {
   const tbody = document.getElementById('teamMembersTable');
   const totalCountEl = document.getElementById('totalTeamMembers');
@@ -398,8 +378,6 @@ async function renderTeam() {
     tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Veuillez vous connecter</td></tr>`;
     return;
   }
-
-  tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; color: #64748b;">Chargement de l'équipe...</td></tr>`;
 
   let teamList = [];
 
@@ -417,19 +395,15 @@ async function renderTeam() {
             const d = new Date(user.created_at);
             dateStr = d.toLocaleDateString('fr-FR');
           }
-          return {
-            email: user.email,
-            level: "Niveau 1",
-            date: dateStr
-          };
+          return { email: user.email, level: "Niveau 1", date: dateStr };
         });
       }
     } catch (err) {
-      console.log("Erreur de récupération des filleuls Cloud :", err);
+      console.log("Erreur filleuls Cloud :", err);
     }
   }
 
-  if (teamList.length === 0 && currentUser.teamMembers && currentUser.teamMembers.length > 0) {
+  if (teamList.length === 0 && currentUser.teamMembers) {
     teamList = currentUser.teamMembers;
   }
 
@@ -516,12 +490,12 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-// --- DISTRIBUTION AUTOMATIQUE DES COMMISSIONS MULTI-NIVEAUX (5%, 2%, 1%) ---
+// --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
 async function distributeReferralCommissions(depositAmount, userEmail, sponsorCode) {
   if (!sponsorCode || !supabaseClient) return;
 
   try {
-    // 1. NIVEAU 1 : 5%
+    // 1. NIVEAU 1 (5%)
     const commissionL1 = depositAmount * 0.05;
     const { data: level1Sponsor } = await supabaseClient
       .from('users')
@@ -538,7 +512,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
 
       historyL1.unshift({
         id: Date.now(),
-        type: `Bonus Parrainage 5% (L1: ${userEmail})`,
+        type: `Bonus Parrainage 5% (${userEmail})`,
         amount: `+$${commissionL1.toFixed(2)}`,
         status: "Approuvé",
         statusClass: "text-green"
@@ -552,7 +526,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
         })
         .eq('invite_code', sponsorCode);
 
-      // 2. NIVEAU 2 : 2%
+      // 2. NIVEAU 2 (2%)
       if (level1Sponsor.referred_by) {
         const commissionL2 = depositAmount * 0.02;
         const { data: level2Sponsor } = await supabaseClient
@@ -570,7 +544,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
 
           historyL2.unshift({
             id: Date.now() + 1,
-            type: `Bonus Parrainage 2% (L2: ${userEmail})`,
+            type: `Bonus Parrainage 2% (${userEmail})`,
             amount: `+$${commissionL2.toFixed(2)}`,
             status: "Approuvé",
             statusClass: "text-green"
@@ -584,7 +558,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
             })
             .eq('invite_code', level1Sponsor.referred_by);
 
-          // 3. NIVEAU 3 : 1%
+          // 3. NIVEAU 3 (1%)
           if (level2Sponsor.referred_by) {
             const commissionL3 = depositAmount * 0.01;
             const { data: level3Sponsor } = await supabaseClient
@@ -602,7 +576,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
 
               historyL3.unshift({
                 id: Date.now() + 2,
-                type: `Bonus Parrainage 1% (L3: ${userEmail})`,
+                type: `Bonus Parrainage 1% (${userEmail})`,
                 amount: `+$${commissionL3.toFixed(2)}`,
                 status: "Approuvé",
                 statusClass: "text-green"
@@ -621,11 +595,11 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
       }
     }
   } catch (err) {
-    console.log("Erreur lors de la distribution multi-niveaux :", err);
+    console.log("Erreur distribution commissions :", err);
   }
 }
 
-// --- SOUMISSION DE DÉPÔT ET DÉCLENCHEMENT DES COMMISSIONS ---
+// --- SOUMISSION DE DÉPÔT ---
 async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   const proofFile = document.getElementById('depositProof').files[0];
@@ -650,6 +624,7 @@ async function submitDeposit() {
   usedDepositAmounts.push(amount);
   closeModal('depositModal');
 
+  // 1. CRÉATION ET ENREGISTREMENT DE L'HISTORIQUE EN ATTENTE (1 MIN)
   const record = { 
     id: Date.now(), 
     type: "Dépôt USDT (BEP20)", 
@@ -657,24 +632,39 @@ async function submitDeposit() {
     status: "En attente (1 min)", 
     statusClass: "text-gold" 
   };
+  
   historyRecords.unshift(record);
   renderHistory();
   saveUserData();
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
+  // 2. TIMEOUT 1 MINUTE : CRÉDIT DU COMPTE ET APPOBATION AUTOMATIQUE
   setTimeout(async () => {
     investedBalance += amount + 1.00;
     record.status = "Approuvé";
     record.statusClass = "text-green";
+    
     updateBalances();
     setupScheduleHighlight(); 
     renderHistory();
     saveUserData();
 
-    // Distribution des commissions aux parrains (Niveau 1: 5%, Niveau 2: 2%, Niveau 3: 1%)
-    if (currentUser && currentUser.referredBy) {
-      await distributeReferralCommissions(amount, currentUser.email, currentUser.referredBy);
+    // Distribution des commissions
+    let sponsorCode = currentUser ? currentUser.referredBy : null;
+    if (!sponsorCode && supabaseClient && currentUser) {
+      const { data: userData } = await supabaseClient
+        .from('users')
+        .select('referred_by')
+        .eq('email', currentUser.email)
+        .maybeSingle();
+      if (userData && userData.referred_by) {
+        sponsorCode = userData.referred_by;
+      }
+    }
+
+    if (sponsorCode && currentUser) {
+      await distributeReferralCommissions(amount, currentUser.email, sponsorCode);
     }
   }, 60000); 
 }
@@ -702,6 +692,7 @@ function submitWithdrawal() {
   dailyGains -= amount;
   closeModal('withdrawModal');
 
+  // ENREGISTREMENT DE L'HISTORIQUE EN ATTENTE D'APPROBATION (24H - 72H)
   const record = { 
     id: Date.now(), 
     type: "Retrait des Gains", 
@@ -709,6 +700,7 @@ function submitWithdrawal() {
     status: "En attente (24h-72h)", 
     statusClass: "text-gold" 
   };
+  
   historyRecords.unshift(record);
   renderHistory();
   updateBalances();
@@ -737,7 +729,7 @@ function executeTradeOrder() {
     return;
   }
 
-  const tradeGain = investedBalance * 0.015; // 1.5% de gain
+  const tradeGain = investedBalance * 0.015;
   dailyGains += tradeGain;
   hasTradedToday = true;
   lastTradeDate = now.toISOString().split('T')[0];
@@ -761,7 +753,7 @@ function executeTradeOrder() {
 
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
+  const currentDay = now.getDay();
   const todayStr = now.toISOString().split('T')[0];
 
   if (lastTradeDate !== todayStr) {
@@ -776,29 +768,26 @@ function setupScheduleHighlight() {
     todayAssetEl.innerText = activeAsset;
   }
 
-  // Sélection du bouton de confirmation de position
   const tradeBtn = document.querySelector('#viewMining button, .trade-btn, #confirmPositionBtn');
   
   if (tradeBtn) {
     if (isWeekend) {
-      // MODE WEEK-END (ROUGE & BLOQUÉ)
       tradeBtn.innerText = "MARCHÉ FERMÉ (WEEK-END)";
-      tradeBtn.style.backgroundColor = "#ef4444"; // Rouge
-      tradeBtn.style.color = "#ffffff"; // Texte blanc
+      tradeBtn.style.backgroundColor = "#ef4444";
+      tradeBtn.style.color = "#ffffff";
       tradeBtn.style.cursor = "not-allowed";
       tradeBtn.disabled = true;
     } else {
-      // MODE SEMAINE (LUNDI AU VENDREDI)
       if (hasTradedToday) {
         tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
-        tradeBtn.style.backgroundColor = "#475569"; // Gris
+        tradeBtn.style.backgroundColor = "#475569";
         tradeBtn.style.color = "#94a3b8";
         tradeBtn.style.cursor = "not-allowed";
         tradeBtn.disabled = true;
       } else {
         tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
-        tradeBtn.style.backgroundColor = "#eab308"; // Jaune / Or
-        tradeBtn.style.color = "#000000"; // Texte noir
+        tradeBtn.style.backgroundColor = "#eab308";
+        tradeBtn.style.color = "#000000";
         tradeBtn.style.cursor = "pointer";
         tradeBtn.disabled = false;
         tradeBtn.onclick = executeTradeOrder;
@@ -807,11 +796,11 @@ function setupScheduleHighlight() {
   }
 }
 
-// --- AFFICHAGE SYNCHRONISÉ DE L'HISTORIQUE ---
+// --- AFFICHAGE DE L'HISTORIQUE D'ACTIVITÉS ---
 async function renderHistory() {
   const historyList = document.getElementById('historyList');
   if (!historyList) return;
-  
+
   if (currentUser && currentUser.email && supabaseClient) {
     try {
       const { data, error } = await supabaseClient
@@ -830,7 +819,7 @@ async function renderHistory() {
         }
       }
     } catch (err) {
-      console.log("Erreur historique Supabase :", err);
+      console.log("Erreur historique :", err);
     }
   }
 
@@ -845,13 +834,20 @@ async function renderHistory() {
     const div = document.createElement('div');
     div.className = "history-item";
     div.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05);";
+    
+    // Détermination de la couleur du statut
+    let statusStyle = "color: #eab308;"; // Jaune par défaut
+    if (rec.statusClass === 'text-green' || rec.status === 'Approuvé') {
+      statusStyle = "color: #22c55e;"; // Vert
+    }
+
     div.innerHTML = `
       <div>
         <p style="margin: 0; font-weight: bold; font-size: 13px; color: #f8fafc;">${rec.type}</p>
-        <p style="margin: 2px 0 0 0; font-size: 11px;" class="${rec.statusClass}">${rec.status}</p>
+        <p style="margin: 2px 0 0 0; font-size: 11px; ${statusStyle}">${rec.status}</p>
       </div>
       <p style="margin: 0; font-weight: bold; font-size: 14px; color: #f8fafc;">${rec.amount}</p>
     `;
     historyList.appendChild(div);
   });
-}
+        }
