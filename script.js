@@ -41,7 +41,7 @@ const assetsSchedule = {
   5: "XRP/USDT"
 };
 
-// --- INSCRIPTION AVEC CODE FONDATEUR OPTIONNEL ---
+// --- INSCRIPTION AVEC CORRECTION MULTI-PARRAINS (SUPABASE + LOCALSTORAGE) ---
 async function handleRegister(e) {
   e.preventDefault();
   const email = document.getElementById('regEmail').value.trim().toLowerCase();
@@ -70,26 +70,46 @@ async function handleRegister(e) {
     return;
   }
 
-  // --- GESTION DU PREMIER COMPTE (FONDATEUR / MASTER) ---
+  // --- RECHERCHE DU PARRAIN (DANS SUPABASE ET LOCALSTORAGE) ---
   const MASTER_FOUNDER_CODE = "CIAMA001";
   let sponsorFound = false;
 
-  // Si c'est le code fondateur CIAMA001 ou si le champ est vide pour le tout premier inscrit
-  if (inviteCodeInput === MASTER_FOUNDER_CODE || inviteCodeInput === "" || localStorage.length === 0) {
+  if (inviteCodeInput === MASTER_FOUNDER_CODE || inviteCodeInput === "") {
+    // Premier administrateur ou code fondateur
     sponsorFound = true;
-    inviteCodeInput = null; // Pas de parrain pour le premier administrateur
+    if (inviteCodeInput === MASTER_FOUNDER_CODE) inviteCodeInput = "CIAMA001";
+    else inviteCodeInput = null;
   } else {
-    // Vérification obligatoire du parrain pour tous les utilisateurs suivants
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key.startsWith('ciama_user_')) {
-        try {
-          const uData = JSON.parse(localStorage.getItem(key));
-          if (uData.inviteCode === inviteCodeInput) {
-            sponsorFound = true;
-            break;
-          }
-        } catch (err) {}
+    // 1. Vérification dans la base de données globale Supabase
+    if (supabaseClient) {
+      try {
+        const { data, error } = await supabaseClient
+          .from('users')
+          .select('invite_code')
+          .eq('invite_code', inviteCodeInput)
+          .maybeSingle();
+
+        if (data) {
+          sponsorFound = true;
+        }
+      } catch (err) {
+        console.log("Erreur de vérification cloud du parrain :", err);
+      }
+    }
+
+    // 2. Vérification dans le localStorage local si non trouvé dans Supabase
+    if (!sponsorFound) {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key.startsWith('ciama_user_')) {
+          try {
+            const uData = JSON.parse(localStorage.getItem(key));
+            if (uData.inviteCode === inviteCodeInput) {
+              sponsorFound = true;
+              break;
+            }
+          } catch (err) {}
+        }
       }
     }
   }
@@ -99,6 +119,7 @@ async function handleRegister(e) {
     return;
   }
 
+  // Génération d'un code unique pour le nouvel inscrit
   const inviteCode = "CIAMA" + Math.floor(1000 + Math.random() * 9000);
   const userData = {
     email,
@@ -115,19 +136,22 @@ async function handleRegister(e) {
     teamMembers: []
   };
 
+  // Enregistrement Local
   localStorage.setItem('ciama_user_' + email, JSON.stringify(userData));
 
+  // Traitement de l'affiliation multi-niveaux
   if (inviteCodeInput) {
     processMultiLevelReferral(inviteCodeInput, email);
   }
 
+  // Enregistrement Cloud dans Supabase
   if (supabaseClient) {
     try {
       await supabaseClient.from('users').insert([
         { email: email, password: pass, balance: 0, invite_code: inviteCode, referred_by: inviteCodeInput }
       ]);
     } catch (err) {
-      console.log("Sauvegarde Supabase en attente.");
+      console.log("Sauvegarde Supabase en attente ou enregistrée localement.");
     }
   }
 
@@ -254,7 +278,7 @@ async function handleLogin(e) {
         .from('users')
         .select('*')
         .eq('email', email)
-        .single();
+        .maybeSingle();
 
       if (data) {
         if (data.password && data.password !== pass) {
@@ -333,7 +357,9 @@ function saveUserData() {
       password: currentUser.password,
       balance: investedBalance,
       daily_gains: dailyGains,
-      withdraw_address: lockedWithdrawAddress
+      withdraw_address: lockedWithdrawAddress,
+      invite_code: currentUser.inviteCode,
+      referred_by: currentUser.referredBy
     }).then();
   }
 }
@@ -602,7 +628,7 @@ function setupScheduleHighlight() {
   const activeAsset = assetsSchedule[currentDay] || "Fermé (Week-end)";
   document.getElementById('todayAsset').innerText = (currentDay === 0 || currentDay === 6) ? "Fermé (Week-end)" : activeAsset;
 
-    let rateText = "1.5%";
+  let rateText = "1.5%";
   if (investedBalance >= 50 && investedBalance <= 200) {
     rateText = "2%";
   } else if (investedBalance >= 300) {
@@ -628,17 +654,6 @@ function setupScheduleHighlight() {
       btn.style.background = "#334155";
       btn.style.color = "#94a3b8";
       btn.innerText = "SIGNAL DÉJÀ EXÉCUTÉ AUJOURD'HUI";
-    } else if (!isSignalTime) {
-      btn.disabled = true;
-      btn.style.background = "#1e293b";
-      btn.style.color = "#64748b";
-      btn.innerText = "ACCÈS FERMÉ (OUVERTURE À 18H00)";
-    } else {
-      btn.disabled = false;
-      btn.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
-      btn.style.color = "#070913";
-      btn.style.cursor = "pointer";
-      btn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
     }
   }
-}
+      }
