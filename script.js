@@ -156,7 +156,7 @@ async function handleRegister(e) {
 
   currentUser = userData;
   loadUserDataFromMemory(userData);
-  initDashboard();
+  await initDashboard();
   alert("Inscription réussie avec succès ! Bienvenue sur CIAMA TRADING.");
 }
 
@@ -180,7 +180,7 @@ function processMultiLevelReferral(sponsorCode, referralEmail) {
   }
 }
 
-// --- CONNEXION CLOUD PRIORITAIRE ---
+// --- CONNEXION SÉCURISÉE ET CHARGEMENT PRIORITAIRE CLOUD ---
 async function handleLogin(e) {
   e.preventDefault();
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
@@ -227,7 +227,7 @@ async function handleLogin(e) {
 
         loadUserDataFromMemory(currentUser);
         localStorage.setItem('ciama_user_' + email, JSON.stringify(currentUser));
-        initDashboard();
+        await initDashboard();
         return;
       }
     } catch (err) {
@@ -244,7 +244,7 @@ async function handleLogin(e) {
     }
     currentUser = data;
     loadUserDataFromMemory(data);
-    initDashboard();
+    await initDashboard();
     return;
   }
 
@@ -884,4 +884,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-}
+  }
