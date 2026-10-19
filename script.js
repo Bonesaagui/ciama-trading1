@@ -525,7 +525,7 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-            // --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
+                // --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
 async function distributeReferralCommissions(depositAmount, userEmail, sponsorCode) {
   if (!sponsorCode || !supabaseClient) return;
 
@@ -735,13 +735,19 @@ async function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER ---
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (RESTREINT À 18H00 - 20H00) ---
 async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
+  const currentHour = now.getHours();
 
   if (currentDay === 0 || currentDay === 6) {
     alert("Le marché est fermé pendant le week-end !");
+    return;
+  }
+
+  if (currentHour < 18 || currentHour >= 20) {
+    alert("Le signal minier est accessible uniquement entre 18h00 et 20h00 !");
     return;
   }
 
@@ -776,9 +782,11 @@ async function executeDailySignal() {
   alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)}.`);
 }
 
+// --- GESTION DU BOUTON ET DES HORAIRES DU SIGNAL (18H00 - 20H00) ---
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay();
+  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
+  const currentHour = now.getHours(); // Heure actuelle (0 à 23)
   const todayStr = now.toISOString().split('T')[0];
 
   if (lastTradeDate !== todayStr) {
@@ -796,26 +804,48 @@ function setupScheduleHighlight() {
   const tradeBtn = document.getElementById('executeTradeBtn');
   
   if (tradeBtn) {
+    // 1. VÉRIFICATION WEEK-END
     if (isWeekend) {
       tradeBtn.innerText = "MARCHÉ FERMÉ (WEEK-END)";
       tradeBtn.style.backgroundColor = "#ef4444";
       tradeBtn.style.color = "#ffffff";
       tradeBtn.style.cursor = "not-allowed";
       tradeBtn.disabled = true;
+      return;
+    }
+
+    // 2. VÉRIFICATION SI DÉJÀ TRADÉ AUJOURD'HUI
+    if (hasTradedToday) {
+      tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
+      tradeBtn.style.backgroundColor = "#475569";
+      tradeBtn.style.color = "#94a3b8";
+      tradeBtn.style.cursor = "not-allowed";
+      tradeBtn.disabled = true;
+      return;
+    }
+
+    // 3. VÉRIFICATION DE LA PLAGE HORAIRE (18H00 - 20H00)
+    if (currentHour < 18) {
+      // Avant 18h00
+      tradeBtn.innerText = "SIGNAL FERMÉ (OUVERTURE À 18H00)";
+      tradeBtn.style.backgroundColor = "#334155";
+      tradeBtn.style.color = "#94a3b8";
+      tradeBtn.style.cursor = "not-allowed";
+      tradeBtn.disabled = true;
+    } else if (currentHour >= 20) {
+      // Après 20h00
+      tradeBtn.innerText = "SIGNAL FERMÉ (DISPONIBLE DEMAIN À 18H00)";
+      tradeBtn.style.backgroundColor = "#334155";
+      tradeBtn.style.color = "#94a3b8";
+      tradeBtn.style.cursor = "not-allowed";
+      tradeBtn.disabled = true;
     } else {
-      if (hasTradedToday) {
-        tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
-        tradeBtn.style.backgroundColor = "#475569";
-        tradeBtn.style.color = "#94a3b8";
-        tradeBtn.style.cursor = "not-allowed";
-        tradeBtn.disabled = true;
-      } else {
-        tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
-        tradeBtn.style.backgroundColor = "#eab308";
-        tradeBtn.style.color = "#000000";
-        tradeBtn.style.cursor = "pointer";
-        tradeBtn.disabled = false;
-      }
+      // Entre 18h00 et 20h00
+      tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
+      tradeBtn.style.backgroundColor = "#eab308";
+      tradeBtn.style.color = "#000000";
+      tradeBtn.style.cursor = "pointer";
+      tradeBtn.disabled = false;
     }
   }
 }
@@ -886,4 +916,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-}
+            }
