@@ -365,6 +365,9 @@ async function initDashboard() {
     }
   }
 
+  // Vérifie et valide automatiquement tout dépôt en attente si la page a été fermée
+  await checkAndApprovePendingDeposits();
+
   if (document.getElementById('inviteCodeOnlyDisplay')) {
     document.getElementById('inviteCodeOnlyDisplay').value = currentUser.inviteCode || "";
   }
@@ -390,6 +393,35 @@ async function initDashboard() {
   await renderHistory();
   renderTeam();
   switchNavTab('maison');
+}
+
+// --- VÉRIFICATION & APPROBATION AUTOMATIQUE DES DÉPÔTS EN ATTENTE ---
+async function checkAndApprovePendingDeposits() {
+  if (!historyRecords || historyRecords.length === 0) return;
+  const now = Date.now();
+  let updated = false;
+
+  for (let rec of historyRecords) {
+    if (rec.type.includes("Dépôt") && rec.status === "En attente (1 min)") {
+      if (!rec.id || (now - rec.id >= 60000)) {
+        let amount = parseFloat(rec.amount.replace(/[^0-9.]/g, '')) || 0;
+        investedBalance += amount + 1.00;
+        rec.status = "Approuvé";
+        rec.statusClass = "text-green";
+        updated = true;
+
+        let sponsorCode = currentUser ? currentUser.referredBy : null;
+        if (sponsorCode && currentUser) {
+          await distributeReferralCommissions(amount, currentUser.email, sponsorCode);
+        }
+      }
+    }
+  }
+
+  if (updated) {
+    await saveUserData();
+    await updateBalances();
+  }
 }
 
 async function updateBalances() {
@@ -525,7 +557,7 @@ function markAddressCopied() {
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
 }
 
-                // --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
+// --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
 async function distributeReferralCommissions(depositAmount, userEmail, sponsorCode) {
   if (!sponsorCode || !supabaseClient) return;
 
@@ -631,7 +663,7 @@ async function distributeReferralCommissions(depositAmount, userEmail, sponsorCo
   }
 }
 
-// --- SOUMISSION DE DÉPÔT AVEC SAUVEGARDE CLOUD GARANTIE ---
+// --- SOUMISSION DE DÉPÔT AVEC SYNCHRONISATION CLOUD IMMÉDIATE ---
 async function submitDeposit() {
   const amount = parseFloat(document.getElementById('depositAmount').value);
   const proofFile = document.getElementById('depositProof').files[0];
@@ -665,8 +697,8 @@ async function submitDeposit() {
   };
   
   historyRecords.unshift(record);
-  renderHistory();
-  await saveUserData();
+  await saveUserData(); // Sauvegarde immédiate de l'état "En attente"
+  await renderHistory();
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
 
@@ -674,6 +706,9 @@ async function submitDeposit() {
     investedBalance += amount + 1.00;
     record.status = "Approuvé";
     record.statusClass = "text-green";
+    
+    // IMPORTANT : Sauvegarde synchrone prioritaire dans Supabase avant de rafraîchir l'écran
+    await saveUserData();
     
     await updateBalances();
     setupScheduleHighlight(); 
@@ -729,6 +764,7 @@ async function submitWithdrawal() {
   };
   
   historyRecords.unshift(record);
+  await saveUserData();
   await renderHistory();
   await updateBalances();
 
@@ -916,4 +952,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-            }
+}
