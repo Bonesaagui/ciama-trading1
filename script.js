@@ -707,7 +707,7 @@ async function submitDeposit() {
     record.status = "Approuvé";
     record.statusClass = "text-green";
     
-    // IMPORTANT : Sauvegarde synchrone prioritaire dans Supabase avant de rafraîchir l'écran
+    // Sauvegarde synchrone prioritaire dans Supabase avant de rafraîchir l'écran
     await saveUserData();
     
     await updateBalances();
@@ -771,7 +771,7 @@ async function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (RESTREINT À 18H00 - 20H00) ---
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (PALIERS DE GAINS INTELLIGENTS) ---
 async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -797,14 +797,23 @@ async function executeDailySignal() {
     return;
   }
 
-  const tradeGain = investedBalance * 0.015;
+  // --- CALCUL DU POURCENTAGE SELON LE PALIER D'INVESTISSEMENT ---
+  let profitPercentage = 0.015; // 1.5% par défaut (pour 10$ à 49$)
+
+  if (investedBalance >= 50 && investedBalance <= 299) {
+    profitPercentage = 0.02;  // 2.0% pour 50$ à 299$
+  } else if (investedBalance >= 300) {
+    profitPercentage = 0.03;  // 3.0% pour 300$ et plus
+  }
+
+  const tradeGain = investedBalance * profitPercentage;
   dailyGains += tradeGain;
   hasTradedToday = true;
   lastTradeDate = now.toISOString().split('T')[0];
 
   const record = {
     id: Date.now(),
-    type: "Signal Minier",
+    type: `Signal Minier (${(profitPercentage * 100).toFixed(1)}%)`,
     amount: `+$${tradeGain.toFixed(2)}`,
     status: "Exécuté",
     statusClass: "text-green"
@@ -815,7 +824,7 @@ async function executeDailySignal() {
   setupScheduleHighlight();
   await renderHistory();
 
-  alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)}.`);
+  alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)} (${(profitPercentage * 100).toFixed(1)}%).`);
 }
 
 // --- GESTION DU BOUTON ET DES HORAIRES DU SIGNAL (18H00 - 20H00) ---
