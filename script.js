@@ -697,7 +697,7 @@ async function submitDeposit() {
   };
   
   historyRecords.unshift(record);
-  await saveUserData(); // Sauvegarde immédiate de l'état "En attente"
+  await saveUserData(); 
   await renderHistory();
 
   alert("Demande de dépôt enregistrée. Votre compte sera crédité automatiquement dans 1 minute !");
@@ -707,9 +707,7 @@ async function submitDeposit() {
     record.status = "Approuvé";
     record.statusClass = "text-green";
     
-    // Sauvegarde synchrone prioritaire dans Supabase avant de rafraîchir l'écran
     await saveUserData();
-    
     await updateBalances();
     setupScheduleHighlight(); 
     await renderHistory();
@@ -771,7 +769,7 @@ async function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (PALIERS DE GAINS INTELLIGENTS) ---
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (AVEC PALIERS DYNAMIQUES) ---
 async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -798,12 +796,11 @@ async function executeDailySignal() {
   }
 
   // --- CALCUL DU POURCENTAGE SELON LE PALIER D'INVESTISSEMENT ---
-  let profitPercentage = 0.015; // 1.5% par défaut (pour 10$ à 49$)
-
+  let profitPercentage = 0.015; // 1.5% par défaut (10$ à 49$)
   if (investedBalance >= 50 && investedBalance <= 299) {
-    profitPercentage = 0.02;  // 2.0% pour 50$ à 299$
+    profitPercentage = 0.02;  // 2.0% (50$ à 299$)
   } else if (investedBalance >= 300) {
-    profitPercentage = 0.03;  // 3.0% pour 300$ et plus
+    profitPercentage = 0.03;  // 3.0% (300$ et plus)
   }
 
   const tradeGain = investedBalance * profitPercentage;
@@ -820,6 +817,7 @@ async function executeDailySignal() {
   };
 
   historyRecords.unshift(record);
+  await saveUserData();
   await updateBalances();
   setupScheduleHighlight();
   await renderHistory();
@@ -827,11 +825,11 @@ async function executeDailySignal() {
   alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)} (${(profitPercentage * 100).toFixed(1)}%).`);
 }
 
-// --- GESTION DU BOUTON ET DES HORAIRES DU SIGNAL (18H00 - 20H00) ---
+// --- GESTION DU BOUTON, HORAIRES & MISE À JOUR DU TAUX DYNAMIQUE ---
 function setupScheduleHighlight() {
   const now = new Date();
-  const currentDay = now.getDay(); // 0 = Dimanche, 6 = Samedi
-  const currentHour = now.getHours(); // Heure actuelle (0 à 23)
+  const currentDay = now.getDay();
+  const currentHour = now.getHours();
   const todayStr = now.toISOString().split('T')[0];
 
   if (lastTradeDate !== todayStr) {
@@ -846,10 +844,22 @@ function setupScheduleHighlight() {
     todayAssetEl.innerText = activeAsset;
   }
 
+  // --- MISE À JOUR DYNAMIQUE DU TAUX DANS L'ONGLET BASSIN MINIER ---
+  let profitPercentage = 0.015;
+  if (investedBalance >= 50 && investedBalance <= 299) {
+    profitPercentage = 0.02;
+  } else if (investedBalance >= 300) {
+    profitPercentage = 0.03;
+  }
+
+  const yieldRateEl = document.getElementById('miningYieldRate');
+  if (yieldRateEl) {
+    yieldRateEl.innerText = `${(profitPercentage * 100).toFixed(1)}%`;
+  }
+
   const tradeBtn = document.getElementById('executeTradeBtn');
   
   if (tradeBtn) {
-    // 1. VÉRIFICATION WEEK-END
     if (isWeekend) {
       tradeBtn.innerText = "MARCHÉ FERMÉ (WEEK-END)";
       tradeBtn.style.backgroundColor = "#ef4444";
@@ -859,7 +869,6 @@ function setupScheduleHighlight() {
       return;
     }
 
-    // 2. VÉRIFICATION SI DÉJÀ TRADÉ AUJOURD'HUI
     if (hasTradedToday) {
       tradeBtn.innerText = "POSITION DÉJÀ EXÉCUTÉE AUJOURD'HUI";
       tradeBtn.style.backgroundColor = "#475569";
@@ -869,23 +878,19 @@ function setupScheduleHighlight() {
       return;
     }
 
-    // 3. VÉRIFICATION DE LA PLAGE HORAIRE (18H00 - 20H00)
     if (currentHour < 18) {
-      // Avant 18h00
       tradeBtn.innerText = "SIGNAL FERMÉ (OUVERTURE À 18H00)";
       tradeBtn.style.backgroundColor = "#334155";
       tradeBtn.style.color = "#94a3b8";
       tradeBtn.style.cursor = "not-allowed";
       tradeBtn.disabled = true;
     } else if (currentHour >= 20) {
-      // Après 20h00
       tradeBtn.innerText = "SIGNAL FERMÉ (DISPONIBLE DEMAIN À 18H00)";
       tradeBtn.style.backgroundColor = "#334155";
       tradeBtn.style.color = "#94a3b8";
       tradeBtn.style.cursor = "not-allowed";
       tradeBtn.disabled = true;
     } else {
-      // Entre 18h00 et 20h00
       tradeBtn.innerText = "CONFIRMER L'OUVERTURE DE LA POSITION";
       tradeBtn.style.backgroundColor = "#eab308";
       tradeBtn.style.color = "#000000";
@@ -895,7 +900,7 @@ function setupScheduleHighlight() {
   }
 }
 
-// --- AFFICHAGE UNIFIÉ DE L'HISTORIQUE (ACCUEIL & MODAL) ---
+// --- AFFICHAGE UNIFIÉ DE L'HISTORIQUE ---
 async function renderHistory() {
   const homeTbody = document.getElementById('homeHistoryTable');
   const modalTbody = document.getElementById('historyTable');
@@ -961,4 +966,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-}
+                    }
