@@ -966,4 +966,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-      
+}
