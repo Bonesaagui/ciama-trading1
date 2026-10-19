@@ -79,7 +79,7 @@
       <!-- VUE 1 : MAISON (ACCUEIL) -->
       <div id="viewMaison" class="app-view">
         <div class="card balance-main-card">
-          <span class="card-title">Total des actifs</span>
+          <span class="card-title">TOTAL DES ACTIFS</span>
           <div id="totalAssetsBalance" class="card-value-large">$0.00</div>
           <div class="sub-balances">
             <div>Portefeuille d'investissement: <b id="investedBalance">$0.00</b></div>
@@ -201,11 +201,11 @@
             <div class="text-gold font-bold">1,5% / jour</div>
           </div>
           <div class="vip-tier-card">
-            <div><b>VIP 2</b><br><span class="text-small">50$ à 200$</span></div>
+            <div><b>VIP 2</b><br><span class="text-small">50$ à 299$</span></div>
             <div class="text-gold font-bold">2% / jour</div>
           </div>
           <div class="vip-tier-card">
-            <div><b>VIP 3</b><br><span class="text-small">300$ à 500$</span></div>
+            <div><b>VIP 3</b><br><span class="text-small">300$ et plus</span></div>
             <div class="text-gold font-bold">3% / jour</div>
           </div>
         </div>
@@ -220,7 +220,7 @@
           </div>
           <div class="signal-info-grid" style="margin: 10px 0; font-size: 13px;">
             <div>Actif du jour : <b id="todayAsset" class="text-gold">-</b></div>
-            <div>Rendement actif : <b id="currentVipRate" class="text-green">1.5%</b></div>
+            <div>Rendement actif : <b id="currentVipRate" class="text-green"><span id="miningYieldRate">1.5%</span></b></div>
           </div>
           <p class="text-small" style="margin-bottom: 10px;">Confirmez votre position quotidienne. Verrouillé pendant 18h après exécution.</p>
           <button id="executeTradeBtn" onclick="executeDailySignal()" class="btn-trade">
@@ -411,7 +411,7 @@
         <span>VIP</span>
       </button>
       <button onclick="switchNavTab('mining')" class="nav-bar-item" id="navMining">
-        <i class="fa-solid fa-network-wired"></i>
+        <i class="fa-solid fa-sitemap"></i>
         <span>Bassin minier</span>
       </button>
       <button onclick="switchNavTab('team')" class="nav-bar-item" id="navTeam">
