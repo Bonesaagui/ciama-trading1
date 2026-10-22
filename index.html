@@ -107,7 +107,7 @@
           </div>
         </div>
 
-        <!-- SECTION HISTORIQUE RÉCENT -->
+        <!-- SECTION HISTORIQUE RÉCENT (ACTIVITÉS SUR LA PAGE PRINCIPALE) -->
         <div style="margin-top: 20px;">
           <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #f8fafc;">Historique récent</h3>
           <div class="table-container" style="background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 10px;">
@@ -128,7 +128,7 @@
           </div>
         </div>
 
-        <!-- SECTION MARCHÉ CRYPTO -->
+        <!-- SECTION MARCHÉ CRYPTO (UNIQUEMENT SUR MAISON) -->
         <div style="margin-top: 20px;">
           <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #f8fafc;">Crypto</h3>
           
@@ -410,4 +410,22 @@
         <i class="fa-solid fa-crown"></i>
         <span>VIP</span>
       </button>
-      
+      <button onclick="switchNavTab('mining')" class="nav-bar-item" id="navMining">
+        <i class="fa-solid fa-sitemap"></i>
+        <span>Bassin minier</span>
+      </button>
+      <button onclick="switchNavTab('team')" class="nav-bar-item" id="navTeam">
+        <i class="fa-solid fa-users"></i>
+        <span>Équipe</span>
+      </button>
+      <button onclick="switchNavTab('profile')" class="nav-bar-item" id="navProfile">
+        <i class="fa-solid fa-user"></i>
+        <span>Moi</span>
+      </button>
+    </nav>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
