@@ -395,7 +395,7 @@ async function initDashboard() {
   switchNavTab('maison');
 }
 
-// --- VÉRIFICATION & APPROBATION AUTOMATIQUE DES DÉPÔTS EN ATTENTE ---
+// --- VÉRIFICATION & APPROBATION AUTOMATIQUE DES DÉPÔTS EN ATTENTE (CORRIGÉ SANS DOUBLE CRÉDIT) ---
 async function checkAndApprovePendingDeposits() {
   if (!historyRecords || historyRecords.length === 0) return;
   const now = Date.now();
@@ -404,12 +404,13 @@ async function checkAndApprovePendingDeposits() {
   for (let rec of historyRecords) {
     if (rec.type.includes("Dépôt") && rec.status === "En attente (1 min)") {
       if (!rec.id || (now - rec.id >= 60000)) {
-        let amount = parseFloat(rec.amount.replace(/[^0-9.]/g, '')) || 0;
-        investedBalance += amount + 1.00;
+        // CORRECTION : On change uniquement le statut et la couleur. 
+        // Le montant n'est plus re-crédité ici pour éviter le doublement du solde.
         rec.status = "Approuvé";
         rec.statusClass = "text-green";
         updated = true;
 
+        let amount = parseFloat(rec.amount.replace(/[^0-9.]/g, '')) || 0;
         let sponsorCode = currentUser ? currentUser.referredBy : null;
         if (sponsorCode && currentUser) {
           await distributeReferralCommissions(amount, currentUser.email, sponsorCode);
@@ -423,6 +424,7 @@ async function checkAndApprovePendingDeposits() {
     await updateBalances();
   }
 }
+
 
 async function updateBalances() {
   const totalAssets = investedBalance + dailyGains;
