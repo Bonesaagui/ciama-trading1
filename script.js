@@ -771,11 +771,12 @@ async function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (AVEC PALIERS DYNAMIQUES) ---
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (CORRIGÉ : SANS CRÉDIT AUTOMATIQUE & AVEC PALIERS DYNAMIQUES) ---
 async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
   const currentHour = now.getHours();
+  const todayStr = now.toISOString().split('T')[0];
 
   if (currentDay === 0 || currentDay === 6) {
     alert("Le marché est fermé pendant le week-end !");
@@ -792,8 +793,19 @@ async function executeDailySignal() {
     return;
   }
 
-  if (hasTradedToday) {
+  // 1. Vérification stricte en mémoire pour la journée en cours
+  if (lastTradeDate === todayStr && hasTradedToday) {
     alert("Vous avez déjà exécuté votre position aujourd'hui. Rendez-vous demain !");
+    return;
+  }
+
+  // 2. Vérification supplémentaire dans l'historique pour bloquer tout double clic ou exécution fantôme
+  const alreadyExecutedToday = historyRecords.some(rec => 
+    rec.type.includes("Signal Minier") && rec.date === todayStr
+  );
+
+  if (alreadyExecutedToday || (lastTradeDate === todayStr && hasTradedToday)) {
+    alert("Le signal d'aujourd'hui a déjà été validé.");
     return;
   }
 
@@ -808,14 +820,15 @@ async function executeDailySignal() {
   const tradeGain = investedBalance * profitPercentage;
   dailyGains += tradeGain;
   hasTradedToday = true;
-  lastTradeDate = now.toISOString().split('T')[0];
+  lastTradeDate = todayStr;
 
   const record = {
     id: Date.now(),
     type: `Signal Minier (${(profitPercentage * 100).toFixed(1)}%)`,
     amount: `+$${tradeGain.toFixed(2)}`,
     status: "Exécuté",
-    statusClass: "text-green"
+    statusClass: "text-green",
+    date: todayStr
   };
 
   historyRecords.unshift(record);
@@ -824,8 +837,9 @@ async function executeDailySignal() {
   setupScheduleHighlight();
   await renderHistory();
 
-  alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)} (${(profitPercentage * 100).toFixed(1)}%).`);
-}
+  alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)} (${(profitPercentage * 100).toFixed(1)}%). Le signal est maintenant fermé pour aujourd'hui.`);
+      }
+
 
 // --- GESTION DU BOUTON, HORAIRES & MISE À JOUR DU TAUX DYNAMIQUE ---
 function setupScheduleHighlight() {
