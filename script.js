@@ -1,4 +1,4 @@
-// --- CONFIGURATION SUPABASE ---
+// --- CONFIGURATION SUPABASE & LIENS PAYDUNYA ---
 const SUPABASE_URL = "https://ufnyqemgcfpxbkitbnxq.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_BWB4tkR__rvsP4CIKMqkGw_a5r15LuC"; 
 
@@ -6,6 +6,19 @@ let supabaseClient = null;
 if (typeof supabase !== 'undefined') {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
+
+// Dictionnaire des 9 liens PayDunya extraits pour vos packs Glow Computing
+const payDunyaLinks = {
+    1: "https://ecommerce.paydunya.com/buy/glow-computing-1", //
+    2: "https://ecommerce.paydunya.com/buy/glow-computing-2", //
+    3: "https://ecommerce.paydunya.com/buy/glow-computing-3", //
+    4: "https://ecommerce.paydunya.com/buy/glow-computing-4", //
+    5: "https://ecommerce.paydunya.com/buy/glow-computing-5", //
+    6: "https://ecommerce.paydunya.com/buy/glow-computing-6", //
+    7: "https://ecommerce.paydunya.com/buy/glow-computing-7", //
+    8: "https://ecommerce.paydunya.com/buy/glow-computing-8", //
+    9: "https://ecommerce.paydunya.com/buy/glow-computing-9"  //
+};
 
 // --- DÉTECTION AUTOMATIQUE DU CODE D'INVITATION DEPUIS L'URL ---
 window.addEventListener('DOMContentLoaded', () => {
@@ -365,7 +378,6 @@ async function initDashboard() {
     }
   }
 
-  // Vérifie et valide automatiquement tout dépôt en attente si la page a été fermée
   await checkAndApprovePendingDeposits();
 
   if (document.getElementById('inviteCodeOnlyDisplay')) {
@@ -395,7 +407,7 @@ async function initDashboard() {
   switchNavTab('maison');
 }
 
-// --- VÉRIFICATION & APPROBATION AUTOMATIQUE DES DÉPÔTS EN ATTENTE (CORRIGÉ SANS DOUBLE CRÉDIT) ---
+// --- VÉRIFICATION & APPROBATION AUTOMATIQUE DES DÉPÔTS EN ATTENTE ---
 async function checkAndApprovePendingDeposits() {
   if (!historyRecords || historyRecords.length === 0) return;
   const now = Date.now();
@@ -404,8 +416,6 @@ async function checkAndApprovePendingDeposits() {
   for (let rec of historyRecords) {
     if (rec.type.includes("Dépôt") && rec.status === "En attente (1 min)") {
       if (!rec.id || (now - rec.id >= 60000)) {
-        // CORRECTION : On change uniquement le statut et la couleur. 
-        // Le montant n'est plus re-crédité ici pour éviter le doublement du solde.
         rec.status = "Approuvé";
         rec.statusClass = "text-green";
         updated = true;
@@ -424,7 +434,6 @@ async function checkAndApprovePendingDeposits() {
     await updateBalances();
   }
 }
-
 
 async function updateBalances() {
   const totalAssets = investedBalance + dailyGains;
@@ -451,7 +460,7 @@ async function renderTeam() {
 
   if (supabaseClient) {
     try {
-      const { data, error } = await supabaseClient
+      const { data } = await supabaseClient
         .from('users')
         .select('email, created_at, referred_by')
         .eq('referred_by', currentUser.inviteCode);
@@ -557,6 +566,16 @@ function markAddressCopied() {
   navigator.clipboard.writeText(depositAddr);
   hasCopiedAddress = true;
   alert("Adresse BEP20 copiée ! Vous pouvez maintenant saisir le montant.");
+}
+
+// --- REDIRECTION DIRECTE VERS LES LIENS PAYDUNYA (PACKS 1 À 9) ---
+function redirectToPayDunyaPack(packNumber) {
+  const targetUrl = payDunyaLinks[packNumber];
+  if (targetUrl) {
+    window.location.href = targetUrl; // Redirige vers le lien unique PayDunya du pack sélectionné
+  } else {
+    alert("Lien du pack introuvable.");
+  }
 }
 
 // --- DISTRIBUTION MULTI-NIVEAUX DES COMMISSIONS (5%, 2%, 1%) ---
@@ -771,7 +790,7 @@ async function submitWithdrawal() {
   alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
 }
 
-// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER (CORRIGÉ : SANS CRÉDIT AUTOMATIQUE & AVEC PALIERS DYNAMIQUES) ---
+// --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER ---
 async function executeDailySignal() {
   const now = new Date();
   const currentDay = now.getDay();
@@ -793,13 +812,11 @@ async function executeDailySignal() {
     return;
   }
 
-  // 1. Vérification stricte en mémoire pour la journée en cours
   if (lastTradeDate === todayStr && hasTradedToday) {
     alert("Vous avez déjà exécuté votre position aujourd'hui. Rendez-vous demain !");
     return;
   }
 
-  // 2. Vérification supplémentaire dans l'historique pour bloquer tout double clic ou exécution fantôme
   const alreadyExecutedToday = historyRecords.some(rec => 
     rec.type.includes("Signal Minier") && rec.date === todayStr
   );
@@ -809,12 +826,11 @@ async function executeDailySignal() {
     return;
   }
 
-  // --- CALCUL DU POURCENTAGE SELON LE PALIER D'INVESTISSEMENT ---
-  let profitPercentage = 0.015; // 1.5% par défaut (10$ à 49$)
+  let profitPercentage = 0.015; 
   if (investedBalance >= 50 && investedBalance <= 299) {
-    profitPercentage = 0.02;  // 2.0% (50$ à 299$)
+    profitPercentage = 0.02;  
   } else if (investedBalance >= 300) {
-    profitPercentage = 0.03;  // 3.0% (300$ et plus)
+    profitPercentage = 0.03;  
   }
 
   const tradeGain = investedBalance * profitPercentage;
@@ -838,8 +854,7 @@ async function executeDailySignal() {
   await renderHistory();
 
   alert(`Position exécutée avec succès ! Vous avez gagné +$${tradeGain.toFixed(2)} (${(profitPercentage * 100).toFixed(1)}%). Le signal est maintenant fermé pour aujourd'hui.`);
-      }
-
+}
 
 // --- GESTION DU BOUTON, HORAIRES & MISE À JOUR DU TAUX DYNAMIQUE ---
 function setupScheduleHighlight() {
@@ -860,7 +875,6 @@ function setupScheduleHighlight() {
     todayAssetEl.innerText = activeAsset;
   }
 
-  // --- MISE À JOUR DYNAMIQUE DU TAUX DANS L'ONGLET BASSIN MINIER ---
   let profitPercentage = 0.015;
   if (investedBalance >= 50 && investedBalance <= 299) {
     profitPercentage = 0.02;
@@ -982,4 +996,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-}
+        }
