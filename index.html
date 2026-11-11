@@ -107,7 +107,7 @@
           </div>
         </div>
 
-        <!-- SECTION HISTORIQUE RÉCENT (ACTIVITÉS SUR LA PAGE PRINCIPALE) -->
+        <!-- SECTION HISTORIQUE RÉCENT -->
         <div style="margin-top: 20px;">
           <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #f8fafc;">Historique récent</h3>
           <div class="table-container" style="background: rgba(255, 255, 255, 0.03); border-radius: 12px; padding: 10px;">
@@ -128,7 +128,7 @@
           </div>
         </div>
 
-        <!-- SECTION MARCHÉ CRYPTO (UNIQUEMENT SUR MAISON) -->
+        <!-- SECTION MARCHÉ CRYPTO -->
         <div style="margin-top: 20px;">
           <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 12px; color: #f8fafc;">Crypto</h3>
           
@@ -348,32 +348,56 @@
       </div>
     </div>
 
-    <!-- MODAL RECHARGER -->
+    <!-- MODAL RECHARGER (USDT + MOBILE MONEY PAYDUNYA AVEC LES 9 PACKS) -->
     <div id="depositModal" class="modal-overlay hidden">
-      <div class="modal-card card">
+      <div class="modal-card card" style="max-height: 90vh; overflow-y: auto;">
         <div class="flex-between">
-          <h2>Recharger (BEP20)</h2>
+          <h2>Recharger le compte</h2>
           <button onclick="closeModal('depositModal')" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
         </div>
-        <div class="alert-box" style="margin-top: 10px;">
-          🎁 Bonus : +$1.00 offert ! (Le montant ne peut pas être réutilisé à l'identique).
+
+        <!-- Option 1 : USDT BEP20 -->
+        <div style="margin-top: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 15px;">
+          <h3 style="font-size: 14px; color: #f59e0b; margin-bottom: 8px;"><i class="fa-solid fa-coins"></i> Option Crypto (USDT BEP20)</h3>
+          <div class="alert-box" style="margin-top: 5px;">
+            🎁 Bonus : +$1.00 offert ! (Le montant ne peut pas être réutilisé à l'identique).
+          </div>
+          <div class="input-group" style="margin-top: 10px;">
+            <label>Adresse USDT (BEP20) - <b>Étape 1 : Copier l'adresse</b></label>
+            <div class="copy-box">
+              <input type="text" readonly value="0x2b8cfe743e2e2c05aedbaaf1fae75d2f839ce057" id="depositAddr">
+              <button onclick="markAddressCopied()" class="btn-sm">Copier</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Montant du dépôt ($) - Min: 10$</label>
+            <input type="number" id="depositAmount" min="10" placeholder="Ex: 55">
+          </div>
+          <div class="input-group">
+            <label>Preuve de paiement (Capture d'écran)</label>
+            <input type="file" id="depositProof" accept="image/*" style="font-size: 11px; color:#cbd5e1;">
+          </div>
+          <button onclick="submitDeposit()" class="btn-success" style="width: 100%; margin-top: 5px;">Valider le dépôt USDT (1 min)</button>
         </div>
-        <div class="input-group" style="margin-top: 10px;">
-          <label>Adresse USDT (BEP20) - <b>Étape 1 : Copier l'adresse</b></label>
-          <div class="copy-box">
-            <input type="text" readonly value="0x2b8cfe743e2e2c05aedbaaf1fae75d2f839ce057" id="depositAddr">
-            <button onclick="markAddressCopied()" class="btn-sm">Copier</button>
+
+         <!-- Option 2 : Mobile Money via PayDunya (9 Packs Glow Computing) -->
+        <div style="margin-top: 15px;">
+          <h3 style="font-size: 14px; color: #22c55e; margin-bottom: 8px;"><i class="fa-solid fa-mobile-screen-button"></i> Option Mobile Money (Packs Glow Computing)</h3>
+          <p class="text-small" style="margin-bottom: 10px;">Cliquez sur l'un de vos 9 packs pour payer directement via PayDunya :</p>
+          
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px;">
+            <button onclick="redirectToPayDunyaPack(1)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 1<br>(6 100 F)</button>
+            <button onclick="redirectToPayDunyaPack(2)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 2<br>(12 200 F)</button>
+            <button onclick="redirectToPayDunyaPack(3)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 3<br>(18 300 F)</button>
+            <button onclick="redirectToPayDunyaPack(4)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 4<br>(30 500 F)</button>
+            <button onclick="redirectToPayDunyaPack(5)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 5<br>(48 600 F)</button>
+            <button onclick="redirectToPayDunyaPack(6)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 6<br>(60 700 F)</button>
+            <button onclick="redirectToPayDunyaPack(7)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 7<br>(121k F)</button>
+            <button onclick="redirectToPayDunyaPack(8)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 8<br>(151k F)</button>
+            <button onclick="redirectToPayDunyaPack(9)" class="btn-sm" style="background:#1e293b; color:#fff; border:1px solid #334155; padding:8px; border-radius:6px; cursor:pointer; font-size:11px;">Pack 9<br>(301k F)</button>
           </div>
         </div>
-        <div class="input-group">
-          <label>Montant du dépôt ($) - Min: 10$</label>
-          <input type="number" id="depositAmount" min="10" placeholder="Ex: 55">
-        </div>
-        <div class="input-group">
-          <label>Preuve de paiement (Capture d'écran)</label>
-          <input type="file" id="depositProof" accept="image/*" style="font-size: 11px; color:#cbd5e1;">
-        </div>
-        <button onclick="submitDeposit()" class="btn-success" style="margin-top: 10px;">Valider le dépôt (1 min)</button>
+
       </div>
     </div>
 
@@ -400,7 +424,7 @@
       </div>
     </div>
 
-    <!-- Barre de Navigation Inférieure -->
+    <!-- Barre de Navigation Inférieure (Conservée à l'identique) -->
     <nav class="bottom-nav-bar">
       <button onclick="switchNavTab('maison')" class="nav-bar-item active" id="navMaison">
         <i class="fa-solid fa-house"></i>
@@ -428,4 +452,4 @@
 
   <script src="script.js"></script>
 </body>
-</html>
+    </html>
