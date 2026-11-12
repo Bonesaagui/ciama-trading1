@@ -402,27 +402,49 @@
     </div>
 
     <!-- MODAL RETIRER -->
+        <!-- MODAL RETIRER (USDT + MOBILE MONEY) -->
     <div id="withdrawModal" class="modal-overlay hidden">
-      <div class="modal-card card">
+      <div class="modal-card card" style="max-height: 90vh; overflow-y: auto;">
         <div class="flex-between">
           <h2>Retrait des Gains</h2>
           <button onclick="closeModal('withdrawModal')" class="btn-close"><i class="fa-solid fa-xmark"></i></button>
         </div>
         <p class="text-small" style="margin-top: 5px;">Seuls les gains journaliers peuvent être retirés. Le capital investi reste gelé en permanence.</p>
+        
         <div class="alert-box" style="margin-top: 8px; background: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.3); color: #93c5fd;">
-          ⏳ <b>Délai de traitement :</b> Les retraits durent 24h à 72h pour être approuvés. Votre demande apparaîtra en attente.
+          ⏳ <b>Délai de traitement :</b> 24h à 72h. Votre demande sera enregistrée pour validation.
         </div>
+
+        <!-- Choix du mode de retrait -->
         <div class="input-group" style="margin-top: 10px;">
+          <label>Mode de retrait</label>
+          <select id="withdrawMethod" onchange="toggleWithdrawMethod()" style="width:100%; padding:10px; background:#1e293b; color:#fff; border:1px solid #334155; border-radius:8px;">
+            <option value="usdt">Crypto USDT (BEP20)</option>
+            <option value="momo">Mobile Money (Orange, MTN, Moov, etc.)</option>
+          </select>
+        </div>
+
+        <!-- Champ USDT -->
+        <div id="usdtWithdrawGroup" class="input-group" style="margin-top: 10px;">
           <label>Adresse USDT (Verrouillée après saisie)</label>
           <input type="text" id="withdrawAddress" placeholder="Votre adresse USDT">
         </div>
+
+        <!-- Champ Mobile Money (Indicatif + Numéro) -->
+        <div id="momoWithdrawGroup" class="input-group hidden" style="margin-top: 10px;">
+          <label>Numéro Mobile Money (avec indicatif pays)</label>
+          <input type="text" id="withdrawMomoPhone" placeholder="Ex: +229 97000000 ou 00229...">
+        </div>
+
         <div class="input-group">
           <label>Montant du retrait ($)</label>
           <input type="number" id="withdrawAmount" placeholder="Ex: 25">
         </div>
-        <button onclick="submitWithdrawal()" class="btn-danger" style="margin-top: 10px;">Confirmer le retrait</button>
+        
+        <button onclick="submitWithdrawal()" class="btn-danger" style="margin-top: 10px; width: 100%;">Confirmer le retrait</button>
       </div>
     </div>
+
 
     <!-- Barre de Navigation Inférieure (Conservée à l'identique) -->
     <nav class="bottom-nav-bar">
