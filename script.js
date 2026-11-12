@@ -751,24 +751,55 @@ async function submitDeposit() {
   }, 60000); 
 }
 
-// --- SOUMISSION DE RETRAIT ---
+// --- BASCULEMENT DU MODE DE RETRAIT (USDT / MOBILE MONEY) ---
+function toggleWithdrawMethod() {
+  const method = document.getElementById('withdrawMethod').value;
+  const usdtGroup = document.getElementById('usdtWithdrawGroup');
+  const momoGroup = document.getElementById('momoWithdrawGroup');
+
+  if (method === 'momo') {
+    usdtGroup.classList.add('hidden');
+    momoGroup.classList.remove('hidden');
+  } else {
+    usdtGroup.classList.remove('hidden');
+    momoGroup.classList.add('hidden');
+  }
+}
+
+// --- SOUMISSION DE RETRAIT (USDT OU MOBILE MONEY) ---
 async function submitWithdrawal() {
-  const addressInput = document.getElementById('withdrawAddress');
+  const method = document.getElementById('withdrawMethod').value;
   const amountInput = document.getElementById('withdrawAmount');
   const amount = parseFloat(amountInput.value);
 
-  if (!addressInput.value && !lockedWithdrawAddress) {
-    alert("Veuillez renseigner votre adresse USDT !");
-    return;
+  let destinationInfo = "";
+  let typeLabel = "";
+
+  if (method === 'momo') {
+    const momoPhone = document.getElementById('withdrawMomoPhone').value.trim();
+    if (!momoPhone) {
+      alert("Veuillez renseigner votre numéro Mobile Money avec l'indicatif !");
+      return;
+    }
+    destinationInfo = `Mobile Money: ${momoPhone}`;
+    typeLabel = "Retrait Mobile Money";
+  } else {
+    const addressInput = document.getElementById('withdrawAddress');
+    if (!addressInput.value && !lockedWithdrawAddress) {
+      alert("Veuillez renseigner votre adresse USDT !");
+      return;
+    }
+    if (!lockedWithdrawAddress) {
+      lockedWithdrawAddress = addressInput.value;
+      addressInput.disabled = true;
+    }
+    destinationInfo = `USDT: ${lockedWithdrawAddress}`;
+    typeLabel = "Retrait USDT";
   }
+
   if (!amount || amount <= 0 || amount > dailyGains) {
     alert("Solde insuffisant dans vos gains journaliers ! (Le capital investi est gelé).");
     return;
-  }
-
-  if (!lockedWithdrawAddress) {
-    lockedWithdrawAddress = addressInput.value;
-    addressInput.disabled = true;
   }
 
   dailyGains -= amount;
@@ -776,7 +807,7 @@ async function submitWithdrawal() {
 
   const record = { 
     id: Date.now(), 
-    type: "Retrait des Gains", 
+    type: `${typeLabel} (${destinationInfo})`, 
     amount: `-$${amount.toFixed(2)}`, 
     status: "En attente (24h-72h)", 
     statusClass: "text-gold" 
@@ -787,7 +818,7 @@ async function submitWithdrawal() {
   await renderHistory();
   await updateBalances();
 
-  alert("Demande de retrait enregistrée. En attente d'approbation (délai de 24h à 72h).");
+  alert("Demande de retrait enregistrée avec succès. Elle apparaît désormais dans votre historique en attente de traitement.");
 }
 
 // --- EXÉCUTION DE L'ORDRE DE TRADING / MINIER ---
