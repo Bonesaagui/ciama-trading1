@@ -81,11 +81,37 @@
         <div class="card balance-main-card">
           <span class="card-title">TOTAL DES ACTIFS</span>
           <div id="totalAssetsBalance" class="card-value-large">$0.00</div>
-          <div class="sub-balances">
-            <div>Portefeuille d'investissement: <b id="investedBalance">$0.00</b></div>
-            <div>Gains journaliers: <b id="dailyGainsBalance" class="text-green">+$0.00</b></div>
-          </div>
-        </div>
+            <!-- DISPOSITION CÔTE À CÔTE (2 COLONNES) -->
+  <div style="margin-top: 12px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <!-- Colonne gauche : Portefeuille d'investissement -->
+    <div style="background: rgba(15, 23, 42, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.15);">
+      <div style="font-size: 12px; color: #94a3b8;">Portefeuille d'investissement</div>
+      <div style="margin-top: 4px; font-size: 15px; font-weight: 700; color: #f8fafc;">
+        <b id="investedBalance">$0.00</b>
+      </div>
+    </div>
+
+    <!-- Colonne droite : Cumul des retraits -->
+    <div style="background: rgba(15, 23, 42, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.15);">
+      <div style="font-size: 12px; color: #94a3b8;">Total des retraits</div>
+      <div id="totalWithdrawalsDisplay" style="margin-top: 4px; font-size: 15px; font-weight: 700; color: #34d399;">$0.00</div>
+  
+
+  <!-- DEUXIÈME LIGNE CÔTE À CÔTE -->
+  <div style="margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+    <div style="background: rgba(15, 23, 42, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.15);">
+      <div style="font-size: 12px; color: #94a3b8;">Gains journaliers</div>
+      <div style="margin-top: 4px; font-size: 15px; font-weight: 700; color: #38bdf8;">
+        <b id="dailyGainsBalance">+$0.00</b>
+      </div>
+    </div>
+
+    <div style="background: rgba(15, 23, 42, 0.55); padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.15);">
+      <div style="font-size: 12px; color: #94a3b8;">Traitement retraits</div>
+      <div style="margin-top: 4px; font-size: 13px; font-weight: 600; color: #fbbf24;">24h - 72h</div>
+    </div>
+  </div>
+</div>
 
         <!-- Grille d'actions rapides -->
         <div class="quick-actions-grid">
