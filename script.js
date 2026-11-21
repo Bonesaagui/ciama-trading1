@@ -263,6 +263,27 @@ async function handleLogin(e) {
 
   alert("Aucun compte trouvé avec cet email ! Veuillez d'abord vous inscrire.");
 }
+// --- CALCUL INSTANTANÉ DU CUMUL DES RETRAITS PAR UTILISATEUR ---
+function updateTotalWithdrawalsDisplay() {
+  let totalWithdrawn = 0;
+
+  if (Array.isArray(historyRecords)) {
+    historyRecords.forEach((item) => {
+      const typeText = (item.type || "").toLowerCase();
+      if (typeText.includes("retrait")) {
+        const numericValue = parseFloat(String(item.amount || "0").replace(/[^0-9.]/g, ""));
+        if (!isNaN(numericValue) && numericValue > 0) {
+          totalWithdrawn += numericValue;
+        }
+      }
+    });
+  }
+
+  const el = document.getElementById("totalWithdrawalsDisplay");
+  if (el) {
+    el.textContent = `$${totalWithdrawn.toFixed(2)}`;
+  }
+}
 
 function loadUserDataFromMemory(data) {
   investedBalance = Number(data.investedBalance) || 0;
@@ -277,10 +298,12 @@ function loadUserDataFromMemory(data) {
     hasTradedToday = data.hasTradedToday || false;
   }
 
-  historyRecords = data.historyRecords || [];
+    historyRecords = data.historyRecords || [];
   usedDepositAmounts = data.usedDepositAmounts || [];
   teamMembers = data.teamMembers || [];
+  updateTotalWithdrawalsDisplay();
 }
+
 
 // --- SAUVEGARDE SYNC DANS SUPABASE (AVEC AWAIT GARANTI) ---
 async function saveUserData() {
