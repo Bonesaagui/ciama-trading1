@@ -9,15 +9,15 @@ if (typeof supabase !== 'undefined') {
 
 // Dictionnaire des 9 liens PayDunya extraits pour vos packs Glow Computing
 const payDunyaLinks = {
-    1: "https://ecommerce.paydunya.com/buy/glow-computing-1", //
-    2: "https://ecommerce.paydunya.com/buy/glow-computing-2", //
-    3: "https://ecommerce.paydunya.com/buy/glow-computing-3", //
-    4: "https://ecommerce.paydunya.com/buy/glow-computing-4", //
-    5: "https://ecommerce.paydunya.com/buy/glow-computing-5", //
-    6: "https://ecommerce.paydunya.com/buy/glow-computing-6", //
-    7: "https://ecommerce.paydunya.com/buy/glow-computing-7", //
-    8: "https://ecommerce.paydunya.com/buy/glow-computing-8", //
-    9: "https://ecommerce.paydunya.com/buy/glow-computing-9"  //
+    1: "https://ecommerce.paydunya.com/buy/glow-computing-1",
+    2: "https://ecommerce.paydunya.com/buy/glow-computing-2",
+    3: "https://ecommerce.paydunya.com/buy/glow-computing-3",
+    4: "https://ecommerce.paydunya.com/buy/glow-computing-4",
+    5: "https://ecommerce.paydunya.com/buy/glow-computing-5",
+    6: "https://ecommerce.paydunya.com/buy/glow-computing-6",
+    7: "https://ecommerce.paydunya.com/buy/glow-computing-7",
+    8: "https://ecommerce.paydunya.com/buy/glow-computing-8",
+    9: "https://ecommerce.paydunya.com/buy/glow-computing-9"
 };
 
 // --- DÉTECTION AUTOMATIQUE DU CODE D'INVITATION DEPUIS L'URL ---
@@ -263,6 +263,7 @@ async function handleLogin(e) {
 
   alert("Aucun compte trouvé avec cet email ! Veuillez d'abord vous inscrire.");
 }
+
 // --- CALCUL INSTANTANÉ DU CUMUL DES RETRAITS PAR UTILISATEUR ---
 function updateTotalWithdrawalsDisplay() {
   let totalWithdrawn = 0;
@@ -298,12 +299,11 @@ function loadUserDataFromMemory(data) {
     hasTradedToday = data.hasTradedToday || false;
   }
 
-    historyRecords = data.historyRecords || [];
+  historyRecords = data.historyRecords || [];
   usedDepositAmounts = data.usedDepositAmounts || [];
   teamMembers = data.teamMembers || [];
   updateTotalWithdrawalsDisplay();
 }
-
 
 // --- SAUVEGARDE SYNC DANS SUPABASE (AVEC AWAIT GARANTI) ---
 async function saveUserData() {
@@ -401,6 +401,7 @@ async function initDashboard() {
     }
   }
 
+  updateTotalWithdrawalsDisplay();
   await checkAndApprovePendingDeposits();
 
   if (document.getElementById('inviteCodeOnlyDisplay')) {
@@ -463,6 +464,7 @@ async function updateBalances() {
   document.getElementById('totalAssetsBalance').innerText = `$${totalAssets.toFixed(2)}`;
   document.getElementById('investedBalance').innerText = `$${investedBalance.toFixed(2)}`;
   document.getElementById('dailyGainsBalance').innerText = `+$${dailyGains.toFixed(2)}`;
+  updateTotalWithdrawalsDisplay();
   await saveUserData();
 }
 
@@ -595,7 +597,7 @@ function markAddressCopied() {
 function redirectToPayDunyaPack(packNumber) {
   const targetUrl = payDunyaLinks[packNumber];
   if (targetUrl) {
-    window.location.href = targetUrl; // Redirige vers le lien unique PayDunya du pack sélectionné
+    window.location.href = targetUrl;
   } else {
     alert("Lien du pack introuvable.");
   }
@@ -1011,6 +1013,8 @@ async function renderHistory() {
     }
   }
 
+  updateTotalWithdrawalsDisplay();
+
   const targets = [homeTbody, modalTbody].filter(Boolean);
 
   targets.forEach(tbody => {
@@ -1050,4 +1054,4 @@ function copyInviteCode() {
     navigator.clipboard.writeText(input.value);
     alert("Lien d'invitation copié !");
   }
-        }
+              }
